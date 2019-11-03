@@ -17,7 +17,6 @@ import springfox.documentation.builders.RequestHandlerSelectors
 import springfox.documentation.spi.DocumentationType
 import springfox.documentation.spring.web.plugins.Docket
 import springfox.documentation.swagger2.annotations.EnableSwagger2
-import java.util.*
 
 
 @SpringBootApplication
@@ -26,14 +25,22 @@ class DemoApplication(
 ) : CommandLineRunner {
 
     override fun run(vararg args: String?) {
-        val restaurant = Restaurant(
-            id = UUID.fromString("00cf5f40-1c6c-4eab-8efc-41fb8a337a22"),
-            name = "Test restaurant",
+        val bg = Restaurant(
+            name = "Burger King",
             address = Address("address", "city", "country")
         )
-        restaurant.dishes.add(Dish(name = "Dish 1", restaurant = restaurant))
+        bg.dishes.add(Dish(name = "Whopper", restaurant = bg))
+        bg.dishes.add(Dish(name = "Fries", restaurant = bg))
 
-        restaurantRepository.save(restaurant)
+        restaurantRepository.save(bg)
+
+        val donerPlace = Restaurant(
+            name = "Döner place",
+            address = Address("Street 2", "City", "Country")
+        )
+        donerPlace.dishes.add(Dish(name = "Döner", restaurant = bg))
+        donerPlace.dishes.add(Dish(name = "Kebap", restaurant = bg))
+        restaurantRepository.save(donerPlace)
     }
 
 }

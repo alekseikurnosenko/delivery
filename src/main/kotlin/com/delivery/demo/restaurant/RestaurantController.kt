@@ -28,6 +28,15 @@ class RestaurantController(
         return restaurantRepository.save(restaurant)
     }
 
+    @ApiOperation("Get restaurant info")
+    @GetMapping("/{restaurantId}")
+    fun restaurant(
+        @PathVariable("restaurantId", required = true) restaurantId: UUID
+    ): Restaurant {
+        return restaurantRepository.findById(restaurantId)
+            .orElseThrow { ResourceNotFoundException("Restaurant not found") }
+    }
+
     @ApiResponses(*[ApiResponse(code = 200, message = "Successfully added a dish")])
     @ApiOperation("Create dish served by restaurant")
     @PostMapping("/{restaurantId}/dishes")

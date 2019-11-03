@@ -8,6 +8,7 @@ import java.util.*
 import javax.validation.Valid
 
 @RestController
+@CrossOrigin
 @RequestMapping("/api/restaurants")
 @Api(value = "Restaurants", description = "REST API for Restaurants", tags = ["Restaurants"])
 class RestaurantController(

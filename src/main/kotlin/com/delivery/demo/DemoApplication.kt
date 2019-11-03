@@ -38,8 +38,8 @@ class DemoApplication(
             name = "Döner place",
             address = Address("Street 2", "City", "Country")
         )
-        donerPlace.dishes.add(Dish(name = "Döner", restaurant = bg))
-        donerPlace.dishes.add(Dish(name = "Kebap", restaurant = bg))
+        donerPlace.dishes.add(Dish(name = "Döner", restaurant = donerPlace))
+        donerPlace.dishes.add(Dish(name = "Kebap", restaurant = donerPlace))
         restaurantRepository.save(donerPlace)
     }
 

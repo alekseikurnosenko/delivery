@@ -3,6 +3,7 @@ package com.delivery.demo.restaurant
 import com.delivery.demo.restaurant.model.Dish
 import com.delivery.demo.restaurant.model.Restaurant
 import io.swagger.annotations.*
+import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.validation.Valid
@@ -34,13 +35,27 @@ class RestaurantController(
         @PathVariable("restaurantId") restaurantId: UUID,
         @ApiParam("Dish to add", required = true) @RequestBody @Valid dish: CreateDishInput
     ): Dish {
-        val restaurant = restaurantRepository.findById(restaurantId).orElseThrow { Throwable("Restaurant not found") }
+        val restaurant = restaurantRepository.findById(restaurantId)
+            .orElseThrow { ResourceNotFoundException("Restaurant not found") }
         restaurant.dishes.add(Dish(null, dish.name, restaurant))
         val updateRestaurant = restaurantRepository.save(restaurant)
         return updateRestaurant.dishes.last()
+    }
+
+    @ApiOperation("Get restaurant dishes")
+    @GetMapping("/{restaurantId}/dishes")
+    fun restaurantDishes(
+        @PathVariable("restaurantId", required = true) restaurantId: UUID
+    ): List<Dish> {
+        val restaurant = restaurantRepository.findById(restaurantId)
+            .orElseThrow { ResourceNotFoundException("Restaurant not found") }
+        return restaurant.dishes
     }
 }
 
 data class CreateDishInput(
     val name: String
 )
+
+@ResponseStatus(value = HttpStatus.NOT_FOUND)
+class ResourceNotFoundException(message: String) : RuntimeException(message)

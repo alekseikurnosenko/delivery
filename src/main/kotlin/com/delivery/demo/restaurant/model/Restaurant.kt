@@ -1,6 +1,7 @@
 package com.delivery.demo.restaurant.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import org.joda.money.Money
 import java.util.*
 import javax.persistence.*
 
@@ -23,6 +24,7 @@ class Dish(
     @GeneratedValue(strategy = GenerationType.AUTO, generator = "pg-uuid")
     var id: UUID? = null,
     var name: String,
+    var price: Money,
     @OneToOne
     @JoinColumn(name = "restaurant_id")
     @JsonIgnore

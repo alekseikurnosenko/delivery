@@ -3,6 +3,7 @@ package com.delivery.demo.restaurant
 import com.delivery.demo.restaurant.model.Dish
 import com.delivery.demo.restaurant.model.Restaurant
 import io.swagger.annotations.*
+import org.joda.money.Money
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -46,7 +47,7 @@ class RestaurantController(
     ): Dish {
         val restaurant = restaurantRepository.findById(restaurantId)
             .orElseThrow { ResourceNotFoundException("Restaurant not found") }
-        restaurant.dishes.add(Dish(null, dish.name, restaurant))
+        restaurant.dishes.add(Dish(null, dish.name, Money.parse(dish.price), restaurant))
         val updateRestaurant = restaurantRepository.save(restaurant)
         return updateRestaurant.dishes.last()
     }
@@ -63,7 +64,8 @@ class RestaurantController(
 }
 
 data class CreateDishInput(
-    val name: String
+    val name: String,
+    val price: String
 )
 
 @ResponseStatus(value = HttpStatus.NOT_FOUND)

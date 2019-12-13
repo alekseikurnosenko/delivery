@@ -1,0 +1,2 @@
+1. Even though Kotlin encourages no to use reverse-dns package names, Spring doesn't play nicely with it,
+since it apparently it might break component scan.

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -37,7 +38,8 @@ class RestaurantController(
         val restaurant = Restaurant(
             id = UUID.randomUUID(),
             name = input.name,
-            address = input.address
+            address = input.address,
+            currency = CurrencyUnit.of(input.currency)
         )
         return restaurantRepository.save(restaurant)
     }
@@ -82,7 +84,8 @@ data class CreateDishInput(
 
 data class CreateRestaurantInput(
     val name: String,
-    val address: Address
+    val address: Address,
+    val currency: String
 )
 
 @ResponseStatus(value = HttpStatus.NOT_FOUND)

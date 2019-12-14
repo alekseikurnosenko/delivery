@@ -1,0 +1,2 @@
+1. Restaurants would always accept order
+2. No "pooling" for deliveries

@@ -24,5 +24,10 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
             .configure(http)
             .cors().and().csrf().disable().authorizeRequests()
             .antMatchers("/api/**").authenticated()
+            .antMatchers("/console/**").permitAll()
+
+
+        http.csrf().disable();
+        http.headers().frameOptions().disable();
     }
 }

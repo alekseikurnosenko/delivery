@@ -5,9 +5,11 @@ import com.delivery.restaurant.model.Dish
 import com.delivery.restaurant.model.Restaurant
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.joda.money.Money
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
+import java.math.BigDecimal
 import java.util.*
 import javax.persistence.*
 
@@ -88,77 +90,4 @@ data class RemoveFromBasketInput(
     val dishId: UUID,
     val restaurantId: UUID,
     val quantity: Int
-)
-
-interface BasketRepository : JpaRepository<Basket, UUID>
-
-@Entity
-data class Basket(
-    val id: UUID,
-    val restaurant: Restaurant,
-    @OneToMany(mappedBy = "", cascade = [CascadeType.ALL])
-    private val _items: MutableList<BasketItem> = mutableListOf()
-) {
-
-    val items: List<BasketItem>
-        get() = _items
-
-    val totalAmount: Money
-        get() {
-            if (_items.isEmpty()) {
-                return Money(0, restaurant.currency)
-            } else {
-                _items.reduce { acc, basketItem ->
-                    acc + basketItem.dish.price * basketItem.quantity
-                }
-            }
-        }
-
-    val isAboveMinmumOrder: Boolean
-        get() {
-            return restaurant.minimumOrderAmount?.let {
-                it < totalAmount
-            } ?: false
-        }
-
-    fun addItem(dish: Dish, quantity: Int) {
-        val basketItemIndex = _items.indexOfFirst { it.dish == dish }
-        if (basketItemIndex != -1) {
-            val basketItem = _items[basketItemIndex]
-            _items[basketItemIndex] = basketItem.copy(quantity = basketItem.quantity + quantity)
-        } else {
-            _items.add(BasketItem(dish, quantity, this))
-        }
-    }
-
-    fun removeItem(dish: Dish, quantity: Int) {
-        val basketItemIndex = _items.indexOfFirst { it.dish == dish }
-        val basketItem = if (basketItemIndex > 0) _items[basketItemIndex] else return
-        if (quantity >= basketItem.quantity) {
-            _items.removeAt(basketItemIndex)
-        } else {
-            _items[basketItemIndex] = basketItem.copy(quantity = basketItem.quantity - quantity)
-        }
-    }
-
-    fun checkout() {
-        if (!isAboveMinmumOrder) {
-            throw Exception("Cannot checkout: below minimum order")
-        }
-
-        // Generate PaymentIntent using `totalAmount`
-        // Send it to client?
-//        status = WaitingForPayment.
-
-    }
-}
-
-@Entity
-data class BasketItem(
-    val dish: Dish,
-    val quantity: Int,
-    @OneToOne
-    @JoinColumn(name = "basket_id")
-    @JsonIgnore
-    val basket: Basket
 )

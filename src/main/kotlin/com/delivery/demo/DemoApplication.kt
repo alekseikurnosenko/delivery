@@ -1,5 +1,9 @@
 package com.delivery.demo
 
+import com.delivery.demo.courier.Courier
+import com.delivery.demo.courier.CourierRepository
+import com.delivery.demo.courier.LatLng
+import com.delivery.demo.courier.LocationReport
 import com.delivery.demo.restaurant.RestaurantRepository
 import com.delivery.restaurant.Address
 import com.delivery.restaurant.model.Restaurant
@@ -31,14 +35,16 @@ import java.util.*
 
 @Component
 class RestaurantsApplication(
-    val restaurantRepository: RestaurantRepository
+    val restaurantRepository: RestaurantRepository,
+    val courierRepository: CourierRepository
 ) : ApplicationRunner {
 
     override fun run(args: ApplicationArguments?) {
         val bg = Restaurant(
             id = UUID.randomUUID(),
             name = "Burger King",
-            address = Address("address", "city", "country")
+            address = Address("address", "city", "country"),
+            currency = CurrencyUnit.EUR
         )
         bg.addDish(name = "Whopper", price = Money.of(CurrencyUnit.EUR, 5.50))
         bg.addDish(name = "Fries", price = Money.of(CurrencyUnit.EUR, 1.50))
@@ -48,11 +54,19 @@ class RestaurantsApplication(
         val donerPlace = Restaurant(
             id = UUID.randomUUID(),
             name = "Döner place",
-            address = Address("Street 2", "City", "Country")
+            address = Address("Street 2", "City", "Country"),
+            currency = CurrencyUnit.EUR
         )
         donerPlace.addDish(name = "Döner", price = Money.of(CurrencyUnit.EUR, 4.50))
         donerPlace.addDish(name = "Kebap", price = Money.of(CurrencyUnit.EUR, 3.50))
         restaurantRepository.save(donerPlace)
+
+        val jake = Courier(
+            fullName = "Jake Jakeson",
+            location = LocationReport(LatLng(0.0f, 0.0f), Date()),
+            onShift = true
+        )
+        courierRepository.save(jake)
     }
 
 }

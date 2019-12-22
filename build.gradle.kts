@@ -49,8 +49,13 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
-        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
+        //        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
+    testImplementation("io.cucumber:cucumber-java8:5.0.0-RC4")
+    testImplementation("io.cucumber:cucumber-java:5.0.0-RC4")
+    testImplementation("io.cucumber:cucumber-junit:5.0.0-RC4")
+//    testImplementation("io.cucumber:cucumber-junit-platform-engine:5.0.0-RC4")
+    testImplementation("io.cucumber:cucumber-spring:5.0.0-RC4")
 }
 
 tasks.withType<Test> {

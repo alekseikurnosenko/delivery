@@ -1,5 +1,6 @@
 package com.delivery.restaurant.model
 
+import com.delivery.demo.basket.Basket
 import com.delivery.demo.order.Order
 import com.delivery.restaurant.Address
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -65,6 +66,10 @@ class Restaurant(
 //        order.copy(status = OrderStatus.AwaitingPickup)
 
         // Emit an event order added?
+    }
+
+    fun newBasket(owner: String): Basket {
+        return Basket(UUID.randomUUID(), owner, this)
     }
 
 }

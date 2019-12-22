@@ -27,13 +27,13 @@ class RestaurantController(
 ) {
 
     @Operation(summary = "Get list of restaurants")
-    @GetMapping("/")
-    fun restaurants(): List<Restaurant> {
-        return restaurantRepository.findAll()
+    @GetMapping("")
+    fun restaurants(): List<RestaurantDTO> {
+        return restaurantRepository.findAll().map { it.asDTO() }
     }
 
     @Operation(summary = "Create new restaurant")
-    @PostMapping("/")
+    @PostMapping("")
     fun createRestaurant(@RequestBody @Valid input: CreateRestaurantInput): Restaurant {
         val restaurant = Restaurant(
             id = UUID.randomUUID(),
@@ -77,6 +77,10 @@ class RestaurantController(
     }
 }
 
+//data class RestaurantView(
+//
+//)
+
 data class CreateDishInput(
     val name: String,
     val price: String
@@ -90,3 +94,14 @@ data class CreateRestaurantInput(
 
 @ResponseStatus(value = HttpStatus.NOT_FOUND)
 class ResourceNotFoundException(message: String) : RuntimeException(message)
+
+
+fun Restaurant.asDTO(): RestaurantDTO = RestaurantDTO(
+    id.toString(),
+    name
+)
+
+data class RestaurantDTO(
+    val id: String,
+    val name: String
+)

@@ -31,6 +31,20 @@ import org.springframework.stereotype.Component
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.util.*
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
+import java.util.ArrayList
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.type.SimpleType
+import io.swagger.v3.core.converter.AnnotatedType
+import io.swagger.v3.core.converter.ModelConverter
+import io.swagger.v3.core.converter.ModelConverterContext
+import io.swagger.v3.core.converter.ModelConverters
+import io.swagger.v3.core.util.Json
+import io.swagger.v3.oas.models.media.Schema
+import org.apache.catalina.filters.RequestDumperFilter
+import org.joda.money.format.MoneyFormatter
+import org.joda.money.format.MoneyFormatterBuilder
+import org.springframework.boot.web.servlet.FilterRegistrationBean
 
 
 @Component
@@ -93,8 +107,16 @@ class DemoApplication {
                 )
             )
     }
-}
 
+//    @Bean
+//    fun requestDumperFilter(): FilterRegistrationBean<RequestDumperFilter> {
+//        val registration = FilterRegistrationBean<RequestDumperFilter>()
+//        val requestDumperFilter = RequestDumperFilter()
+//        registration.filter = requestDumperFilter
+//        registration.addUrlPatterns("/*")
+//        return registration
+//    }
+}
 //
 //@Configuration
 //@EnableSwagger2
@@ -151,36 +173,94 @@ internal class WebMvcConfiguration : WebMvcConfigurer {
 }
 
 @Configuration
-internal class JacksonConfiguration {
+class JacksonConfiguration {
 
     @Bean
-    @Primary
     fun objectMapper(): ObjectMapper {
-        val objectMapper = ObjectMapper()
         val moneyModule = SimpleModule()
         moneyModule.addSerializer(Money::class.java, MoneySerializer())
         moneyModule.addDeserializer(Money::class.java, MoneyDeserializer())
-        objectMapper.registerModule(moneyModule)
-        objectMapper.registerModule(KotlinModule())
-        return objectMapper
+
+        moneyModule.addSerializer(CurrencyUnit::class.java, object : JsonSerializer<CurrencyUnit>() {
+            override fun serialize(value: CurrencyUnit, gen: JsonGenerator, serializers: SerializerProvider) {
+                gen.writeString(value.code)
+            }
+        })
+        moneyModule.addDeserializer(CurrencyUnit::class.java, object : JsonDeserializer<CurrencyUnit>() {
+            override fun deserialize(p: JsonParser, ctxt: DeserializationContext): CurrencyUnit {
+                val code = p.readValueAs(String::class.java)
+                return CurrencyUnit.of(code)
+            }
+
+        })
+
+        return Jackson2ObjectMapperBuilder.json()
+            .modules(moneyModule)
+            .build()
     }
 
     data class MoneyView(
         val amount: Double,
-        val currency: CurrencyUnit
+        val currencyCode: String,
+        val formatted: String
     )
 
+
     class MoneySerializer : JsonSerializer<Money>() {
+
         override fun serialize(value: Money, gen: JsonGenerator, serializers: SerializerProvider) {
-            gen.writeObject(MoneyView(value.amount.toDouble(), value.currencyUnit))
+            // Need to get user local here?
+            val formatter =
+                MoneyFormatterBuilder().appendCurrencySymbolLocalized().appendAmountLocalized().toFormatter()
+            val view = MoneyView(
+                amount = value.amount.toDouble(),
+                currencyCode = value.currencyUnit.code,
+                formatted = formatter.print(value)
+            )
+            gen.writeObject(view)
         }
     }
 
     class MoneyDeserializer : JsonDeserializer<Money>() {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Money {
             val view = p.readValueAs(MoneyView::class.java)
-            return Money.of(view.currency, view.amount)
+            val currencyUnit = CurrencyUnit.of(view.currencyCode)
+            return Money.of(currencyUnit, view.amount)
         }
     }
 
+}
+
+@Component
+class MoneyConverter : ModelConverter {
+
+    override fun resolve(
+        type: AnnotatedType,
+        context: ModelConverterContext,
+        chain: MutableIterator<ModelConverter>
+    ): Schema<*>? {
+        val typeName = type.type.typeName
+
+        var newType = type
+        if (type.isSchemaProperty) {
+            Json.mapper().constructType(type.type)?.let {
+                val cls = it.rawClass
+                if (Money::class.java.isAssignableFrom(cls)) {
+                    newType = AnnotatedType(JacksonConfiguration.MoneyView::class.java)
+                }
+            }
+        }
+
+        return if (chain.hasNext()) {
+            chain.next().resolve(newType, context, chain)
+        } else {
+            null
+        }
+    }
+
+    companion object {
+        init {
+            ModelConverters.getInstance().addConverter(MoneyConverter())
+        }
+    }
 }

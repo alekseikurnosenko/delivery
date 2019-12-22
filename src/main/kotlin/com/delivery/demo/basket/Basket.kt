@@ -13,6 +13,7 @@ import javax.persistence.*
 data class Basket(
     @Id
     val id: UUID,
+    val owner: String,
     @ManyToOne
     @JoinColumn(name = "restaurant_id")
     val restaurant: Restaurant,

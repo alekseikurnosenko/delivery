@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.joda.money.Money
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.http.MediaType
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import java.math.BigDecimal
 import java.util.*
@@ -25,11 +26,13 @@ class BasketController(
     val basketRepository: BasketRepository
 ) {
 
-    @GetMapping("/")
-    fun basket(): Basket {
+    @GetMapping("")
+    fun basket(): Basket? {
         // if we have user profile - it's easy
         // what if user is a guest?
-        return null!!
+        val owner = SecurityContextHolder.getContext().authentication.principal as String
+
+        return basketRepository.findByOwner(owner).orElse(null)
     }
 
     @PostMapping("/addItem")
@@ -43,10 +46,15 @@ class BasketController(
             throw Exception("Invalid quantity")
         }
 
+        val owner = SecurityContextHolder.getContext().authentication.principal as String
         // find current basket
         // if missing, create one
         // Should it be the controller's job to do it?
-        val basket = basket()
+        val basket = basket() ?: run {
+            val newBasket = restaurant.newBasket(owner)
+            basketRepository.save(newBasket)
+            newBasket
+        }
 
         // If basket is not empty
         // And basket already contains dishes from other restaurn
@@ -71,7 +79,7 @@ class BasketController(
             throw Exception("Invalid quantity")
         }
 
-        val basket = basket()
+        val basket = basket() ?: throw Exception("No basket avaialble")
 
         basket.removeItem(dish, input.quantity)
 

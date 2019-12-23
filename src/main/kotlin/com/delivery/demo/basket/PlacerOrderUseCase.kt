@@ -1,18 +1,21 @@
-package com.delivery.demo.order
+package com.delivery.demo.basket
 
-import com.delivery.demo.basket.Basket
 import com.delivery.demo.courier.CourierRepository
+import com.delivery.demo.order.Order
+import com.delivery.demo.order.OrderItem
+import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.restaurant.RestaurantRepository
 import com.delivery.restaurant.Address
-import java.util.*
+import org.springframework.stereotype.Service
 
-
+@Service
 class PlacerOrderUseCase(
-    private val courierRepository: CourierRepository,
-    private val restaurantRepository: RestaurantRepository
+    val courierRepository: CourierRepository,
+    val restaurantRepository: RestaurantRepository,
+    val orderRepository: OrderRepository
 ) {
 
-    fun place(basket: Basket, deliveryAddress: Address) {
+    fun place(basket: Basket, deliveryAddress: Address): Order {
         // List all couriers that are on shift
         val couriers = courierRepository.findByOnShift(true)
         // Ensure that there are some available
@@ -45,12 +48,15 @@ class PlacerOrderUseCase(
                 order = order
             )
         })
-
         // Set courier
         order.assignToCourier(courier)
+        orderRepository.save(order)
+
         // Assign
         courier.addOrder(order)
         // Notify restaurant
         basket.restaurant.placeOrder(order)
+
+        return order
     }
 }

@@ -76,9 +76,14 @@ data class Basket(
 //        status = WaitingForPayment.
 
     }
+
+    override fun toString(): String {
+        return "${Basket::class.java.simpleName}(id=$id)"
+    }
 }
 
 @Entity
+@Table(name = "basket_items")
 data class BasketItem(
     @Id
     val id: UUID = UUID.randomUUID(),
@@ -88,6 +93,9 @@ data class BasketItem(
     val quantity: Int,
     @ManyToOne
     @JoinColumn(name = "basket_id")
-    @JsonIgnore
     val basket: Basket
-)
+) {
+    override fun toString(): String {
+        return "${BasketItem::class.simpleName}(id=$id)"
+    }
+}

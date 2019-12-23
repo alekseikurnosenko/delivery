@@ -1,9 +1,11 @@
 package com.delivery.demo.order
 
+import com.delivery.demo.basket.Basket
 import com.delivery.demo.courier.Courier
 import com.delivery.restaurant.Address
 import com.delivery.restaurant.model.Dish
 import com.delivery.restaurant.model.Restaurant
+import com.fasterxml.jackson.annotation.JsonIgnore
 import java.util.*
 import javax.persistence.*
 
@@ -38,6 +40,10 @@ data class Order constructor(
         this.courier = courier
     }
 
+    override fun toString(): String {
+        return "${Order::class.java.simpleName}$id"
+    }
+
     companion object {
         fun place(
             restaurant: Restaurant,
@@ -64,9 +70,14 @@ data class OrderItem(
     val dish: Dish,
     @ManyToOne
     @JoinColumn(name = "order_id")
+    @JsonIgnore
     val order: Order,
     val quantity: Int
-)
+) {
+    override fun toString(): String {
+        return "${OrderItem::class.java.simpleName}$id"
+    }
+}
 
 enum class OrderStatus {
     Placed,

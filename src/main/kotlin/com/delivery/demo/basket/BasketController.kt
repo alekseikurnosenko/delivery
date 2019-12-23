@@ -1,18 +1,22 @@
 package com.delivery.demo.basket
 
+import com.delivery.demo.JacksonConfiguration
+import com.delivery.demo.courier.CourierRepository
+import com.delivery.demo.order.Order
+import com.delivery.demo.order.OrderDTO
+import com.delivery.demo.order.asDTO
+import com.delivery.demo.restaurant.DishDTO
 import com.delivery.demo.restaurant.RestaurantRepository
-import com.delivery.restaurant.model.Dish
-import com.delivery.restaurant.model.Restaurant
-import com.fasterxml.jackson.annotation.JsonIgnore
+import com.delivery.demo.restaurant.asDTO
+import com.delivery.restaurant.Address
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.joda.money.Money
-import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
-import java.math.BigDecimal
 import java.util.*
-import javax.persistence.*
+import javax.validation.Valid
 
 @RestController
 @CrossOrigin
@@ -23,20 +27,21 @@ import javax.persistence.*
 @Tag(name = "basket", description = "Current basket")
 class BasketController(
     val restaurantRepository: RestaurantRepository,
-    val basketRepository: BasketRepository
+    val basketRepository: BasketRepository,
+    val placeOrderUseCase: PlacerOrderUseCase
 ) {
 
     @GetMapping("")
-    fun basket(): Basket? {
+    fun basket(): BasketDTO? {
         // if we have user profile - it's easy
         // what if user is a guest?
         val owner = SecurityContextHolder.getContext().authentication.principal as String
 
-        return basketRepository.findByOwner(owner).orElse(null)
+        return basketRepository.findByOwner(owner).map { it.asDTO() }.orElse(null)
     }
 
-    @PostMapping("/addItem")
-    fun addItemToBasket(input: AddToBasketInput): Basket {
+    @PostMapping("/addItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun addItemToBasket(@RequestBody @Valid input: AddItemToBasketInput): BasketDTO {
         val restaurant = restaurantRepository.findById(input.restaurantId)
             .orElseThrow { Exception("Restaurant not found") }
 
@@ -50,10 +55,9 @@ class BasketController(
         // find current basket
         // if missing, create one
         // Should it be the controller's job to do it?
-        val basket = basket() ?: run {
+        val basket = basketRepository.findByOwner(owner).orElseGet {
             val newBasket = restaurant.newBasket(owner)
             basketRepository.save(newBasket)
-            newBasket
         }
 
         // If basket is not empty
@@ -64,12 +68,13 @@ class BasketController(
         }
 
         basket.addItem(dish, input.quantity)
+        basketRepository.flush()
 
-        return basket
+        return basket.asDTO()
     }
 
-    @PostMapping("/removeItem")
-    fun removeItemFromBasket(input: RemoveFromBasketInput): Basket {
+    @PostMapping("/removeItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun removeItemFromBasket(@RequestBody @Valid input: RemoveFromBasketInput): Basket {
         val restaurant = restaurantRepository.findById(input.restaurantId)
             .orElseThrow { Exception("Restaurant not found") }
 
@@ -79,15 +84,25 @@ class BasketController(
             throw Exception("Invalid quantity")
         }
 
-        val basket = basket() ?: throw Exception("No basket avaialble")
+        val owner = SecurityContextHolder.getContext().authentication.principal as String
+        val basket = basketRepository.findByOwner(owner).orElseThrow { Exception("No basket avaialble") }
 
         basket.removeItem(dish, input.quantity)
 
         return basket
     }
+
+    @PostMapping("/checkout")
+    fun checkout(): OrderDTO {
+        val owner = SecurityContextHolder.getContext().authentication.principal as String
+        val basket = basketRepository.findByOwner(owner).orElseThrow { Exception("No basket avaialble") }
+
+        // TODO: Address should be set at the very beginning before searching
+        return placeOrderUseCase.place(basket, Address("Some", "City", "US")).asDTO()
+    }
 }
 
-data class AddToBasketInput(
+data class AddItemToBasketInput(
     val dishId: UUID,
     val restaurantId: UUID,
     val quantity: Int,
@@ -98,4 +113,26 @@ data class RemoveFromBasketInput(
     val dishId: UUID,
     val restaurantId: UUID,
     val quantity: Int
+)
+
+data class BasketDTO(
+    val items: List<BasketItemDTO>,
+    val totalAmount: JacksonConfiguration.MoneyView,
+    val isAboveMinimumOrder: Boolean
+)
+
+data class BasketItemDTO(
+    val dish: DishDTO,
+    val quantity: Int
+)
+
+fun Basket.asDTO() = BasketDTO(
+    items = items.map { it.asDTO() },
+    totalAmount = totalAmount.asDTO(),
+    isAboveMinimumOrder = isAboveMinimumOrder
+)
+
+fun BasketItem.asDTO() = BasketItemDTO(
+    dish = dish.asDTO(),
+    quantity = quantity
 )

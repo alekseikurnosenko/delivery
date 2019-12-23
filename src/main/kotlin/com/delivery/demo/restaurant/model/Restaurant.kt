@@ -80,8 +80,7 @@ class Dish(
     val id: UUID,
     val name: String,
     val price: Money,
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "restaurant_id")
-    @JsonIgnore
     val restaurant: Restaurant
 )

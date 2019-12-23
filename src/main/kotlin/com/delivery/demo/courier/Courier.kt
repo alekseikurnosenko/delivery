@@ -1,6 +1,7 @@
 package com.delivery.demo.courier
 
 import com.delivery.demo.order.Order
+import com.fasterxml.jackson.annotation.JsonIgnore
 import java.util.*
 import javax.persistence.*
 
@@ -27,6 +28,7 @@ data class Courier(
     private var location: LocationReport,
     private var onShift: Boolean,
     @OneToMany(mappedBy = "courier")
+    @JsonIgnore // Otherwise we have a cycle!
     private var _orders: MutableList<Order> = mutableListOf()
 ) {
 
@@ -47,5 +49,9 @@ data class Courier(
 
     fun updateLocation(location: LocationReport) {
         this.location = location
+    }
+
+    override fun toString(): String {
+        return "${Courier::class.java.simpleName}$id"
     }
 }

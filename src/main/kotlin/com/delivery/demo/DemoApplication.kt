@@ -1,5 +1,7 @@
 package com.delivery.demo
 
+import com.delivery.demo.basket.Basket
+import com.delivery.demo.basket.BasketRepository
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.courier.LatLng
@@ -50,7 +52,8 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean
 @Component
 class RestaurantsApplication(
     val restaurantRepository: RestaurantRepository,
-    val courierRepository: CourierRepository
+    val courierRepository: CourierRepository,
+    val basketRepository: BasketRepository
 ) : ApplicationRunner {
 
     override fun run(args: ApplicationArguments?) {
@@ -81,6 +84,10 @@ class RestaurantsApplication(
             onShift = true
         )
         courierRepository.save(jake)
+
+        val basket = donerPlace.newBasket("Jake")
+        val savedBasket = basketRepository.save(basket)
+        savedBasket.addItem(donerPlace.dishes[0], 1)
     }
 
 }
@@ -195,7 +202,7 @@ class JacksonConfiguration {
         })
 
         return Jackson2ObjectMapperBuilder.json()
-            .modules(moneyModule)
+            .modulesToInstall(moneyModule)
             .build()
     }
 

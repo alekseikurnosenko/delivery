@@ -1,6 +1,7 @@
-package com.delivery.restaurant
+package com.delivery.demo.restaurant
 
-import com.delivery.demo.restaurant.RestaurantRepository
+import com.delivery.demo.JacksonConfiguration
+import com.delivery.restaurant.Address
 import com.delivery.restaurant.model.Dish
 import com.delivery.restaurant.model.Restaurant
 import io.swagger.v3.oas.annotations.Operation
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
+import org.joda.money.format.MoneyFormatterBuilder
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
@@ -34,23 +36,24 @@ class RestaurantController(
 
     @Operation(summary = "Create new restaurant")
     @PostMapping("")
-    fun createRestaurant(@RequestBody @Valid input: CreateRestaurantInput): Restaurant {
+    fun createRestaurant(@RequestBody @Valid input: CreateRestaurantInput): RestaurantDTO {
         val restaurant = Restaurant(
             id = UUID.randomUUID(),
             name = input.name,
             address = input.address,
             currency = CurrencyUnit.of(input.currency)
         )
-        return restaurantRepository.save(restaurant)
+        return restaurantRepository.save(restaurant).asDTO()
     }
 
     @Operation(summary = "Get restaurant info")
     @GetMapping("/{restaurantId}")
     fun restaurant(
         @PathVariable("restaurantId", required = true) restaurantId: UUID
-    ): Restaurant {
+    ): RestaurantDTO {
         return restaurantRepository.findById(restaurantId)
             .orElseThrow { ResourceNotFoundException("Restaurant not found") }
+            .asDTO()
     }
 
     @PostMapping("/{restaurantId}/dishes", consumes = [MediaType.APPLICATION_JSON_VALUE])
@@ -59,27 +62,22 @@ class RestaurantController(
     fun createDish(
         @PathVariable("restaurantId") restaurantId: UUID,
         @Parameter(description = "Dish to add", required = true) @RequestBody @Valid dish: CreateDishInput
-    ): Dish {
+    ): DishDTO {
         val restaurant = restaurantRepository.findById(restaurantId)
             .orElseThrow { ResourceNotFoundException("Restaurant not found") }
-        val dish = restaurant.addDish(dish.name, Money.parse(dish.price))
-        return dish
+        return restaurant.addDish(dish.name, Money.parse(dish.price)).asDTO()
     }
 
     @Operation(summary = "Get restaurant dishes")
     @GetMapping("/{restaurantId}/dishes")
     fun restaurantDishes(
         @PathVariable("restaurantId", required = true) restaurantId: UUID
-    ): List<Dish> {
+    ): List<DishDTO> {
         val restaurant = restaurantRepository.findById(restaurantId)
             .orElseThrow { ResourceNotFoundException("Restaurant not found") }
-        return restaurant.dishes
+        return restaurant.dishes.map { it.asDTO() }
     }
 }
-
-//data class RestaurantView(
-//
-//)
 
 data class CreateDishInput(
     val name: String,
@@ -104,4 +102,25 @@ fun Restaurant.asDTO(): RestaurantDTO = RestaurantDTO(
 data class RestaurantDTO(
     val id: String,
     val name: String
+)
+
+fun Dish.asDTO(): DishDTO = DishDTO(
+    id = id.toString(),
+    name = name,
+    price = price.asDTO()
+)
+
+fun Money.asDTO(): JacksonConfiguration.MoneyView {
+    val formatter = MoneyFormatterBuilder().appendCurrencySymbolLocalized().appendAmountLocalized().toFormatter()
+    return JacksonConfiguration.MoneyView(
+        amount = amount.toDouble(),
+        currencyCode = currencyUnit.code,
+        formatted = formatter.print(this)
+    )
+}
+
+data class DishDTO(
+    val id: String,
+    val name: String,
+    val price: JacksonConfiguration.MoneyView
 )

@@ -1,24 +1,24 @@
 package com.delivery.demo
 
-import com.delivery.demo.basket.Basket
 import com.delivery.demo.basket.BasketRepository
-import com.delivery.demo.courier.Courier
 import com.delivery.demo.courier.CourierRepository
-import com.delivery.demo.courier.LatLng
-import com.delivery.demo.courier.LocationReport
 import com.delivery.demo.restaurant.RestaurantRepository
-import com.delivery.restaurant.Address
-import com.delivery.restaurant.model.Restaurant
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
-import com.fasterxml.jackson.module.kotlin.KotlinModule
+import io.swagger.v3.core.converter.AnnotatedType
+import io.swagger.v3.core.converter.ModelConverter
+import io.swagger.v3.core.converter.ModelConverterContext
+import io.swagger.v3.core.converter.ModelConverters
+import io.swagger.v3.core.util.Json
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.security.SecurityScheme
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
+import org.joda.money.format.MoneyFormatterBuilder
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -26,27 +26,12 @@ import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Primary
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.http.MediaType
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
-import java.util.*
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
-import java.util.ArrayList
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.type.SimpleType
-import io.swagger.v3.core.converter.AnnotatedType
-import io.swagger.v3.core.converter.ModelConverter
-import io.swagger.v3.core.converter.ModelConverterContext
-import io.swagger.v3.core.converter.ModelConverters
-import io.swagger.v3.core.util.Json
-import io.swagger.v3.oas.models.media.Schema
-import org.apache.catalina.filters.RequestDumperFilter
-import org.joda.money.format.MoneyFormatter
-import org.joda.money.format.MoneyFormatterBuilder
-import org.springframework.boot.web.servlet.FilterRegistrationBean
 
 
 @Component
@@ -57,37 +42,37 @@ class RestaurantsApplication(
 ) : ApplicationRunner {
 
     override fun run(args: ApplicationArguments?) {
-        val bg = Restaurant(
-            id = UUID.randomUUID(),
-            name = "Burger King",
-            address = Address("address", "city", "country"),
-            currency = CurrencyUnit.EUR
-        )
-        bg.addDish(name = "Whopper", price = Money.of(CurrencyUnit.EUR, 5.50))
-        bg.addDish(name = "Fries", price = Money.of(CurrencyUnit.EUR, 1.50))
-
-        restaurantRepository.save(bg)
-
-        val donerPlace = Restaurant(
-            id = UUID.randomUUID(),
-            name = "Döner place",
-            address = Address("Street 2", "City", "Country"),
-            currency = CurrencyUnit.EUR
-        )
-        donerPlace.addDish(name = "Döner", price = Money.of(CurrencyUnit.EUR, 4.50))
-        donerPlace.addDish(name = "Kebap", price = Money.of(CurrencyUnit.EUR, 3.50))
-        restaurantRepository.save(donerPlace)
-
-        val jake = Courier(
-            fullName = "Jake Jakeson",
-            location = LocationReport(LatLng(0.0f, 0.0f), Date()),
-            onShift = true
-        )
-        courierRepository.save(jake)
-
-        val basket = donerPlace.newBasket("Jake")
-        val savedBasket = basketRepository.save(basket)
-        savedBasket.addItem(donerPlace.dishes[0], 1)
+//        val bg = Restaurant(
+//            id = UUID.randomUUID(),
+//            name = "Burger King",
+//            address = Address(LatLng(0.0f, 0.0f), "address", "city", "country"),
+//            currency = CurrencyUnit.EUR
+//        )
+//        bg.addDish(name = "Whopper", price = Money.of(CurrencyUnit.EUR, 5.50))
+//        bg.addDish(name = "Fries", price = Money.of(CurrencyUnit.EUR, 1.50))
+//
+//        restaurantRepository.save(bg)
+//
+//        val donerPlace = Restaurant(
+//            id = UUID.randomUUID(),
+//            name = "Döner place",
+//            address = Address(LatLng(10.0f, 10.0f),"Street 2", "City", "Country"),
+//            currency = CurrencyUnit.EUR
+//        )
+//        donerPlace.addDish(name = "Döner", price = Money.of(CurrencyUnit.EUR, 4.50))
+//        donerPlace.addDish(name = "Kebap", price = Money.of(CurrencyUnit.EUR, 3.50))
+//        restaurantRepository.save(donerPlace)
+//
+//        val jake = Courier(
+//            fullName = "Jake Jakeson",
+//            location = LocationReport(LatLng(0.0f, 0.0f), Date()),
+//            onShift = true
+//        )
+//        courierRepository.save(jake)
+//
+//        val basket = donerPlace.newBasket("Jake")
+//        val savedBasket = basketRepository.save(basket)
+//        savedBasket.addItem(donerPlace.dishes[0], 1)
     }
 
 }

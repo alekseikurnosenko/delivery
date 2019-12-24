@@ -1,9 +1,8 @@
 package com.delivery.restaurant.model
 
+import com.delivery.demo.Address
 import com.delivery.demo.basket.Basket
 import com.delivery.demo.order.Order
-import com.delivery.restaurant.Address
-import com.fasterxml.jackson.annotation.JsonIgnore
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import java.util.*

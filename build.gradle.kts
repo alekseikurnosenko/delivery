@@ -56,6 +56,7 @@ dependencies {
     testImplementation("io.cucumber:cucumber-junit:5.0.0-RC4")
 //    testImplementation("io.cucumber:cucumber-junit-platform-engine:5.0.0-RC4")
     testImplementation("io.cucumber:cucumber-spring:5.0.0-RC4")
+    testImplementation("org.assertj:assertj-core:3.14.0")
 }
 
 tasks.withType<Test> {

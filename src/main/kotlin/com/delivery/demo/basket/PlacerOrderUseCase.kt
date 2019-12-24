@@ -1,11 +1,11 @@
 package com.delivery.demo.basket
 
+import com.delivery.demo.Address
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderItem
 import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.restaurant.RestaurantRepository
-import com.delivery.restaurant.Address
 import org.springframework.stereotype.Service
 
 @Service
@@ -16,6 +16,10 @@ class PlacerOrderUseCase(
 ) {
 
     fun place(basket: Basket, deliveryAddress: Address): Order {
+        // Ensure it's still working
+        if (!basket.restaurant.isAcceptingOrders) {
+            throw Exception("Restaurant is not accepting orders")
+        }
         // List all couriers that are on shift
         val couriers = courierRepository.findByOnShift(true)
         // Ensure that there are some available
@@ -23,17 +27,14 @@ class PlacerOrderUseCase(
             throw Exception("No courier available")
         }
 
-//        // find the restaurant we want to order from
-//        val restaurant = restaurantRepository.findById(restaurantId)
-//            .orElseThrow { Exception("Unknown restaurant with id $restaurantId") }
-        // Ensure it's still working
-        if (!basket.restaurant.isAcceptingOrders) {
-            throw Exception("Restaurant is not accepting orders")
-        }
-        // TODO: Charge payment
-
         // Find the closest courier to the resturant
-        val courier = couriers.first()
+        // TODO: does it make sense to allow couriers without location reported?
+        val courier = couriers
+            .filter { it.location != null }
+            .minBy { it.location!!.latLng.distanceTo(basket.restaurant.address.location) }
+            ?: throw Exception("No courier available")
+
+        // TODO: Charge payment
 
         // Create order
         val order = Order.place(

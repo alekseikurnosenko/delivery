@@ -1,19 +1,16 @@
 package com.delivery.demo.basket
 
+import com.delivery.demo.Address
 import com.delivery.demo.JacksonConfiguration
-import com.delivery.demo.courier.CourierRepository
-import com.delivery.demo.order.Order
+import com.delivery.demo.courier.LatLng
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.asDTO
 import com.delivery.demo.restaurant.DishDTO
 import com.delivery.demo.restaurant.RestaurantRepository
 import com.delivery.demo.restaurant.asDTO
-import com.delivery.restaurant.Address
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.validation.Valid
@@ -98,7 +95,7 @@ class BasketController(
         val basket = basketRepository.findByOwner(owner).orElseThrow { Exception("No basket avaialble") }
 
         // TODO: Address should be set at the very beginning before searching
-        return placeOrderUseCase.place(basket, Address("Some", "City", "US")).asDTO()
+        return placeOrderUseCase.place(basket, Address(LatLng(-5.0f, -5.0f), "Some", "City", "US")).asDTO()
     }
 }
 

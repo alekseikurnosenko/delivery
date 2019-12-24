@@ -1,7 +1,7 @@
 package com.delivery.demo.restaurant
 
+import com.delivery.demo.Address
 import com.delivery.demo.JacksonConfiguration
-import com.delivery.restaurant.Address
 import com.delivery.restaurant.model.Dish
 import com.delivery.restaurant.model.Restaurant
 import io.swagger.v3.oas.annotations.Operation

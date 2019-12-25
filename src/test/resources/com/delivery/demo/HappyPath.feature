@@ -23,6 +23,7 @@ Feature: HappyPath
     And user's basket total amount should be 15.50
     When user performs checkout
     Then "Mike" is assigned to deliver this order
+    Then "Joes" receives this order
 
   Scenario: Some other one
     Given A signed-in user

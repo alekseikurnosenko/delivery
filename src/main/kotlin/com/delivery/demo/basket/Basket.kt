@@ -1,8 +1,7 @@
 package com.delivery.demo.basket
 
-import com.delivery.restaurant.model.Dish
-import com.delivery.restaurant.model.Restaurant
-import com.fasterxml.jackson.annotation.JsonIgnore
+import com.delivery.demo.restaurant.Dish
+import com.delivery.demo.restaurant.Restaurant
 import org.joda.money.Money
 import java.math.BigDecimal
 import java.util.*

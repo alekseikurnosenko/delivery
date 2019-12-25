@@ -5,13 +5,13 @@ import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderItem
 import com.delivery.demo.order.OrderRepository
-import com.delivery.demo.restaurant.RestaurantRepository
+import com.delivery.demo.restaurant.RestaurantOrderRepository
 import org.springframework.stereotype.Service
 
 @Service
 class PlacerOrderUseCase(
     val courierRepository: CourierRepository,
-    val restaurantRepository: RestaurantRepository,
+    val restaurantOrderRepository: RestaurantOrderRepository,
     val orderRepository: OrderRepository
 ) {
 
@@ -56,7 +56,13 @@ class PlacerOrderUseCase(
         // Assign
         courier.addOrder(order)
         // Notify restaurant
-        basket.restaurant.placeOrder(order)
+
+        // ???
+        // Should probably be outside of this use-case completely
+        // As it's not really part of the same transaction
+        // 🤔 who is responsible for posting an event?
+        val restaurantOrder = basket.restaurant.placeOrder(order)
+        restaurantOrderRepository.save(restaurantOrder)
 
         return order
     }

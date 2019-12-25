@@ -2,8 +2,8 @@ package com.delivery.demo.restaurant
 
 import com.delivery.demo.Address
 import com.delivery.demo.JacksonConfiguration
-import com.delivery.restaurant.model.Dish
-import com.delivery.restaurant.model.Restaurant
+import com.delivery.demo.order.OrderDTO
+import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -25,7 +25,8 @@ import javax.validation.Valid
 )
 @Tag(name = "restaurants", description = "Manage restaurants")
 class RestaurantController(
-    private val restaurantRepository: RestaurantRepository
+    private val restaurantRepository: RestaurantRepository,
+    private val restaurantOrderRepository: RestaurantOrderRepository
 ) {
 
     @Operation(summary = "Get list of restaurants")
@@ -77,6 +78,18 @@ class RestaurantController(
             .orElseThrow { ResourceNotFoundException("Restaurant not found") }
         return restaurant.dishes.map { it.asDTO() }
     }
+
+    @GetMapping("/{restaurantId}/orders")
+    fun orders(
+        @PathVariable("restaurantId", required = true) restaurantId: UUID,
+        @RequestParam(required = false) status: RestaurantOrderStatus?
+    ): List<RestaurantOrderDTO> {
+        return if (status != null) {
+            restaurantOrderRepository.findByRestaurantIdAndStatus(restaurantId, status).map { it.asDTO() }
+        } else {
+            restaurantOrderRepository.findByRestaurantId(restaurantId).map { it.asDTO() }
+        }
+    }
 }
 
 data class CreateDishInput(
@@ -123,4 +136,14 @@ data class DishDTO(
     val id: String,
     val name: String,
     val price: JacksonConfiguration.MoneyView
+)
+
+data class RestaurantOrderDTO(
+    val status: RestaurantOrderStatus,
+    val order: OrderDTO
+)
+
+fun RestaurantOrder.asDTO() = RestaurantOrderDTO(
+    status = status,
+    order = order.asDTO()
 )

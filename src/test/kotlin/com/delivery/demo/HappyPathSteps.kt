@@ -4,10 +4,7 @@ import com.delivery.demo.basket.AddItemToBasketInput
 import com.delivery.demo.basket.BasketDTO
 import com.delivery.demo.courier.*
 import com.delivery.demo.order.OrderDTO
-import com.delivery.demo.restaurant.DishDTO
-import com.delivery.demo.restaurant.RestaurantDTO
-import com.delivery.demo.restaurant.RestaurantRepository
-import com.delivery.restaurant.model.Restaurant
+import com.delivery.demo.restaurant.*
 import io.cucumber.datatable.DataTable
 import io.cucumber.java8.En
 import io.cucumber.spring.CucumberTestContext
@@ -150,6 +147,11 @@ class HappyPathSteps : En {
             val courierId = world.couriers.getValue(courierName)
             val orders = restTemplate.getForObject<Array<CourierAssignmentDTO>>(api("/couriers/$courierId/orders"))
             assertThat(orders.map { it.id }).contains(world.order.id)
+        }
+        Then("^\"(.+)\" receives this order") { restaurantName: String ->
+            val restaurantId = world.restaurants.first { it.name == restaurantName }.id
+            val orders = restTemplate.getForObject<Array<RestaurantOrderDTO>>(api("/restaurants/$restaurantId/orders"))
+            assertThat(orders.map { it.order.id }).contains(world.order.id)
         }
     }
 

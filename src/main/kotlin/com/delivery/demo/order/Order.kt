@@ -2,8 +2,8 @@ package com.delivery.demo.order
 
 import com.delivery.demo.Address
 import com.delivery.demo.courier.Courier
-import com.delivery.restaurant.model.Dish
-import com.delivery.restaurant.model.Restaurant
+import com.delivery.demo.restaurant.Dish
+import com.delivery.demo.restaurant.Restaurant
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.util.*
 import javax.persistence.*

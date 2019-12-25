@@ -2,7 +2,7 @@
 //
 //import com.delivery.demo.basket.AddToBasketInput
 //import com.delivery.demo.basket.Basket
-//import com.delivery.restaurant.model.Restaurant
+//import com.delivery.demo.restaurant.Restaurant
 //import com.fasterxml.jackson.databind.ObjectMapper
 //import com.fasterxml.jackson.module.kotlin.readValue
 //import org.aspectj.lang.annotation.Before

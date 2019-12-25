@@ -1,4 +1,4 @@
-package com.delivery.restaurant.model
+package com.delivery.demo.restaurant
 
 import com.delivery.demo.Address
 import com.delivery.demo.basket.Basket
@@ -21,9 +21,7 @@ class Restaurant(
     val minimumOrderAmount: Money? = null,
     @Embedded
     val address: Address,
-    val currency: CurrencyUnit,
-    @OneToMany(mappedBy = "restaurant", cascade = [CascadeType.ALL])
-    private val _orders: MutableList<Order> = mutableListOf()
+    val currency: CurrencyUnit
 ) {
 
     val isAcceptingOrders: Boolean
@@ -45,15 +43,6 @@ class Restaurant(
         return dish
     }
 
-    val orders: List<Order>
-        get() = _orders
-
-    fun placeOrder(order: Order) {
-        _orders.add(order)
-
-        // Emit an event order added?
-    }
-
     fun startPreparing(order: Order) {
 
 
@@ -69,6 +58,13 @@ class Restaurant(
 
     fun newBasket(owner: String): Basket {
         return Basket(UUID.randomUUID(), owner, this)
+    }
+
+    fun placeOrder(order: Order): RestaurantOrder {
+        if (!isAcceptingOrders) {
+            throw Exception("Cannot place order since the restaurant is not accepting any")
+        }
+        return RestaurantOrder(id, RestaurantOrderStatus.Pending, order)
     }
 
 }

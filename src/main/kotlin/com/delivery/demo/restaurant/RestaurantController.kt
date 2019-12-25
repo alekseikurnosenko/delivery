@@ -90,6 +90,32 @@ class RestaurantController(
             restaurantOrderRepository.findByRestaurantId(restaurantId).map { it.asDTO() }
         }
     }
+
+    @PostMapping("/{restaurantId}/orders/{orderId}/startPreparing")
+    fun startPreparingOrder(
+        @PathVariable("restaurantId", required = true) restaurantId: UUID,
+        @PathVariable("orderId", required = true) orderId: UUID,
+        @RequestParam(required = false) status: RestaurantOrderStatus?
+    ): RestaurantOrderDTO {
+        val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
+            ResourceNotFoundException("Restaurant or Order not found")
+        }
+        order.startPreparing()
+        return order.asDTO()
+    }
+
+    @PostMapping("/{restaurantId}/orders/{orderId}/finishPreparing")
+    fun finishPreparingOrder(
+        @PathVariable("restaurantId", required = true) restaurantId: UUID,
+        @PathVariable("orderId", required = true) orderId: UUID,
+        @RequestParam(required = false) status: RestaurantOrderStatus?
+    ): RestaurantOrderDTO {
+        val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
+            ResourceNotFoundException("Restaurant or Order not found")
+        }
+        order.finishPreparing()
+        return order.asDTO()
+    }
 }
 
 data class CreateDishInput(

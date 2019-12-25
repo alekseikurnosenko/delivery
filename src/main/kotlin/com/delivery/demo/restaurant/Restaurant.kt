@@ -7,30 +7,23 @@ import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import java.util.*
 import javax.persistence.*
-import javax.validation.constraints.NotNull
 
 @Entity
 @Table(name = "restaurants")
 class Restaurant(
-    @Id
-    val id: UUID,
-    @field:NotNull
+    @Id val id: UUID,
     val name: String,
-    @OneToMany(mappedBy = "restaurant", cascade = [CascadeType.ALL])
-    private val _dishes: MutableList<Dish> = mutableListOf(),
     val minimumOrderAmount: Money? = null,
-    @Embedded
-    val address: Address,
+    @Embedded val address: Address,
     val currency: CurrencyUnit
 ) {
 
+    @OneToMany(mappedBy = "restaurant", cascade = [CascadeType.ALL])
+    var dishes: MutableList<Dish> = mutableListOf()
+        protected set
+
     val isAcceptingOrders: Boolean
         get() = true // TOOD: operating times?
-
-    val dishes: List<Dish>
-        @NotNull
-        get() = _dishes
-
 
     fun addDish(name: String, price: Money): Dish {
         val dish = Dish(
@@ -39,21 +32,8 @@ class Restaurant(
             price = price,
             restaurant = this
         )
-        _dishes.add(dish)
+        dishes.add(dish)
         return dish
-    }
-
-    fun startPreparing(order: Order) {
-
-
-        // Emit an event order added?
-    }
-
-    fun completePreparing(order: Order) {
-        // Where to save it?
-//        order.copy(status = OrderStatus.AwaitingPickup)
-
-        // Emit an event order added?
     }
 
     fun newBasket(owner: String): Basket {

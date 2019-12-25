@@ -153,6 +153,20 @@ class HappyPathSteps : En {
             val orders = restTemplate.getForObject<Array<RestaurantOrderDTO>>(api("/restaurants/$restaurantId/orders"))
             assertThat(orders.map { it.order.id }).contains(world.order.id)
         }
+        When("^\"(.+)\" starts to prepare this order") { restaurantName: String ->
+            val restaurantId = world.restaurants.first { it.name == restaurantName }.id
+            val orderId = world.order.id
+            val order =
+                restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/startPreparing"))
+            assertThat(order.status).isEqualTo(RestaurantOrderStatus.Active)
+        }
+        When("^\"(.+)\" finishes preparing this order") { restaurantName: String ->
+            val restaurantId = world.restaurants.first { it.name == restaurantName }.id
+            val orderId = world.order.id
+            val order =
+                restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/finishPreparing"))
+            assertThat(order.status).isEqualTo(RestaurantOrderStatus.Completed)
+        }
     }
 
     fun api(path: String) = "http://localhost:$serverPort/api$path"

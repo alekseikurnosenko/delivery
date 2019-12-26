@@ -14,6 +14,7 @@ import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.validation.Valid
@@ -62,13 +63,14 @@ class RestaurantController(
     @PostMapping("/{restaurantId}/dishes", consumes = [MediaType.APPLICATION_JSON_VALUE])
     @Operation(summary = "Create dish served by restaurant")
     @ApiResponse(responseCode = "200", description = "Successfully added a dish")
+    @Transactional
     fun createDish(
         @PathVariable("restaurantId") restaurantId: UUID,
         @Parameter(description = "Dish to add", required = true) @RequestBody @Valid dish: CreateDishInput
     ): DishDTO {
         val restaurant = restaurantRepository.findById(restaurantId)
             .orElseThrow { ResourceNotFoundException("Restaurant not found") }
-        return restaurant.addDish(dish.name, Money.parse(dish.price)).asDTO()
+        return restaurant.addDish(dish.name, Money.of(restaurant.currency, dish.price)).asDTO()
     }
 
     @Operation(summary = "Get restaurant dishes")
@@ -126,7 +128,7 @@ class RestaurantController(
 
 data class CreateDishInput(
     val name: String,
-    val price: String
+    val price: Double
 )
 
 data class CreateRestaurantInput(

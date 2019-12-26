@@ -20,6 +20,14 @@ class CourierController(
     val courierOrderRepository: CourierOrderRepository
 ) {
 
+    @PostMapping("")
+    fun createCourier(
+        @RequestBody input: CreateCourierInput
+    ): CourierDTO {
+        val courier = Courier.new(input.name)
+        return courierRepository.save(courier).asDTO()
+    }
+
     @GetMapping("/{courierId}/orders")
     fun orders(
         @PathVariable("courierId", required = true) courierId: UUID
@@ -83,6 +91,10 @@ class CourierController(
     }
 
 }
+
+data class CreateCourierInput(
+    val name: String
+)
 
 data class UpdateLocationInput(
     val latLng: LatLng

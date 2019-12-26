@@ -11,7 +11,6 @@ import io.cucumber.java8.En
 import io.cucumber.spring.CucumberTestContext
 import org.assertj.core.api.Assertions.assertThat
 import org.joda.money.CurrencyUnit
-import org.joda.money.Money
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootContextLoader
 import org.springframework.boot.test.context.SpringBootTest
@@ -45,11 +44,6 @@ class HappyPathSteps : En {
 
     @Autowired
     lateinit var world: HappyPathWorld
-
-    @Autowired
-    lateinit var restaurantRepository: RestaurantRepository
-    @Autowired
-    lateinit var courierRepository: CourierRepository
     @Autowired
     lateinit var objectMapper: ObjectMapper
 
@@ -57,7 +51,8 @@ class HappyPathSteps : En {
     lateinit var session: WebSocketSession
 
     @LocalServerPort
-    var serverPort = 0
+    var serverPort = 80
+    var endpoint = "localhost" // "enigmatic-garden-23553.herokuapp.com"
 
     private val locationMap = mapOf(
         "PointA" to LatLng(0.0f, 0.0f),
@@ -93,26 +88,28 @@ class HappyPathSteps : En {
                     val event = objectMapper.readValue(socketMessage.payload, Class.forName(socketMessage.type))
                     world.events.add(event)
                 }
-            }, WebSocketHttpHeaders(), URI.create("ws://127.0.0.1:$serverPort/")).get()
+            }, WebSocketHttpHeaders(), URI.create("ws://$endpoint:$serverPort/")).get()
 
             session.sendMessage(TextMessage("Hey"))
         }
         Given("^restaurant \"(.+)\" located near \"(.+)\" with following dishes$") { restaurantName: String, locationName: String, dataTable: DataTable ->
-            val restaurant = Restaurant(
-                id = UUID.randomUUID(),
+            val input = CreateRestaurantInput(
                 name = restaurantName,
                 address = Address(locationMap.getValue(locationName), "Fake", "Fake", "Fake"),
-                currency = CurrencyUnit.USD
+                currency = CurrencyUnit.USD.code
             )
+            val restaurant = restTemplate.postForObject<RestaurantDTO>(api("/restaurants"), input)
             dataTable.asMaps()
-                .forEach {
-                    val dishName = it.getValue("dish")
-                    val price = it.getValue("price").toDouble()
-                    restaurant.addDish(dishName, Money.of(restaurant.currency, price))
+                .map {
+                    CreateDishInput(
+                        name = it.getValue("dish"),
+                        price = it.getValue("price").toDouble()
+                    )
                 }
-            restaurantRepository.save(restaurant)
+                .forEach {
+                    restTemplate.postForObject<DishDTO>(api("/restaurants/${restaurant.id}/dishes"), it)
+                }
         }
-
         Given("A signed-in user") {
             // Do we like need two restTemplates with different headers?
             // Aka, on service one, one normal one?
@@ -152,8 +149,8 @@ class HappyPathSteps : En {
             world.order = restTemplate.postForObject<OrderDTO>("http://localhost:$serverPort/api/basket/checkout")
         }
         Given("^a courier \"(.+)\"") { courierName: String ->
-            val courier = Courier.new(courierName)
-            courierRepository.save(courier)
+            val input = CreateCourierInput(name = courierName)
+            val courier = restTemplate.postForObject<CourierDTO>(api("/couriers"), input)
             world.couriers[courierName] = courier.id
         }
         Given("^\"(.+)\" is on shift") { courierName: String ->
@@ -215,7 +212,7 @@ class HappyPathSteps : En {
         }
     }
 
-    fun api(path: String) = "http://localhost:$serverPort/api$path"
+    fun api(path: String) = "http://$endpoint:$serverPort/api$path"
 }
 
 fun retry(handler: () -> Unit) {
@@ -241,5 +238,5 @@ class HappyPathWorld {
 
     val events = ConcurrentLinkedDeque<Any>()
 
-    val couriers = mutableMapOf<String, UUID>()
+    val couriers = mutableMapOf<String, String>()
 }

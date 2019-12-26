@@ -15,17 +15,23 @@ Feature: HappyPath
   Scenario: User orders a delivery
     Given A signed-in user
     And user's basket is empty
+
     When user browses list of restaurants
     And user browses dishes of "Joes" restaurant
     And user adds 2 "Burger" to basket
     And user adds 1 "Fries" to basket
     Then user's basket should not be empty
     And user's basket total amount should be 15.50
+
     When user performs checkout
     Then "Mike" is assigned to deliver this order
     And "Joes" receives this order
+
     When "Joes" starts to prepare this order
+    Then "Mike" is notified that order preparation started
+
     And "Joes" finishes preparing this order
+    Then "Mike" is notified that order preparation finished
 
   Scenario: Some other one
     Given A signed-in user

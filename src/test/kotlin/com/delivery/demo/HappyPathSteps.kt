@@ -5,6 +5,7 @@ import com.delivery.demo.basket.BasketDTO
 import com.delivery.demo.courier.*
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.restaurant.*
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.datatable.DataTable
 import io.cucumber.java8.En
 import io.cucumber.spring.CucumberTestContext
@@ -26,7 +27,14 @@ import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.exchange
 import org.springframework.web.client.getForObject
 import org.springframework.web.client.postForObject
+import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.WebSocketHttpHeaders
+import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.client.standard.StandardWebSocketClient
+import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.net.URI
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedDeque
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -42,8 +50,11 @@ class HappyPathSteps : En {
     lateinit var restaurantRepository: RestaurantRepository
     @Autowired
     lateinit var courierRepository: CourierRepository
+    @Autowired
+    lateinit var objectMapper: ObjectMapper
 
     lateinit var token: String
+    lateinit var session: WebSocketSession
 
     @LocalServerPort
     var serverPort = 0
@@ -74,6 +85,17 @@ class HappyPathSteps : En {
                     return@ClientHttpRequestInterceptor execution.execute(request, body)
                 }
             )
+
+            val client = StandardWebSocketClient()
+            session = client.doHandshake(object : TextWebSocketHandler() {
+                override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
+                    val socketMessage = objectMapper.readValue(message.payload, WebSocketMessage::class.java)
+                    val event = objectMapper.readValue(socketMessage.payload, Class.forName(socketMessage.type))
+                    world.events.add(event)
+                }
+            }, WebSocketHttpHeaders(), URI.create("ws://127.0.0.1:$serverPort/")).get()
+
+            session.sendMessage(TextMessage("Hey"))
         }
         Given("^restaurant \"(.+)\" located near \"(.+)\" with following dishes$") { restaurantName: String, locationName: String, dataTable: DataTable ->
             val restaurant = Restaurant(
@@ -167,9 +189,33 @@ class HappyPathSteps : En {
                 restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/finishPreparing"))
             assertThat(order.status).isEqualTo(RestaurantOrderStatus.Completed)
         }
+        Then("^\"(.+)\" is notified that order preparation started") { courierName: String ->
+            retry {
+                val events = world.events.filterIsInstance<OrderPreparationStarted>().first()
+                assertThat(events.orderId.toString()).isEqualTo(world.order.id)
+            }
+        }
+        Then("^\"(.+)\" is notified that order preparation finished") { courierName: String ->
+            retry {
+                val events = world.events.filterIsInstance<OrderPreparationFinished>().first()
+                assertThat(events.orderId.toString()).isEqualTo(world.order.id)
+            }
+        }
     }
 
     fun api(path: String) = "http://localhost:$serverPort/api$path"
+}
+
+fun retry(handler: () -> Unit) {
+    // TODO: timeout?
+    while (true) {
+        try {
+            handler()
+            break
+        } catch (e: Exception) {
+
+        }
+    }
 }
 
 @Component
@@ -180,6 +226,8 @@ class HappyPathWorld {
     lateinit var dishes: Array<DishDTO>
     lateinit var order: OrderDTO
     lateinit var basket: BasketDTO
+
+    val events = ConcurrentLinkedDeque<Any>()
 
     val couriers = mutableMapOf<String, UUID>()
 }

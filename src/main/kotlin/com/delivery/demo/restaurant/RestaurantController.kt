@@ -1,6 +1,7 @@
 package com.delivery.demo.restaurant
 
 import com.delivery.demo.Address
+import com.delivery.demo.EventPublisher
 import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.asDTO
@@ -26,7 +27,8 @@ import javax.validation.Valid
 @Tag(name = "restaurants", description = "Manage restaurants")
 class RestaurantController(
     private val restaurantRepository: RestaurantRepository,
-    private val restaurantOrderRepository: RestaurantOrderRepository
+    private val restaurantOrderRepository: RestaurantOrderRepository,
+    private val eventPublisher: EventPublisher
 ) {
 
     @Operation(summary = "Get list of restaurants")
@@ -101,6 +103,8 @@ class RestaurantController(
             ResourceNotFoundException("Restaurant or Order not found")
         }
         order.startPreparing()
+
+        eventPublisher.publish("Order", order.events)
         return order.asDTO()
     }
 
@@ -114,6 +118,8 @@ class RestaurantController(
             ResourceNotFoundException("Restaurant or Order not found")
         }
         order.finishPreparing()
+
+        eventPublisher.publish("Order", order.events)
         return order.asDTO()
     }
 }

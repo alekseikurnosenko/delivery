@@ -11,6 +11,7 @@ import com.delivery.demo.restaurant.asDTO
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.MediaType
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.validation.Valid
@@ -37,6 +38,7 @@ class BasketController(
         return basketRepository.findByOwner(owner).map { it.asDTO() }.orElse(null)
     }
 
+    @Transactional
     @PostMapping("/addItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun addItemToBasket(@RequestBody @Valid input: AddItemToBasketInput): BasketDTO {
         val restaurant = restaurantRepository.findById(input.restaurantId)
@@ -65,8 +67,6 @@ class BasketController(
         }
 
         basket.addItem(dish, input.quantity)
-        basketRepository.flush()
-
         return basket.asDTO()
     }
 

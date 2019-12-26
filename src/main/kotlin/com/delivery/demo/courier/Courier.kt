@@ -1,7 +1,6 @@
 package com.delivery.demo.courier
 
 import com.delivery.demo.order.Order
-import com.fasterxml.jackson.annotation.JsonIgnore
 import java.util.*
 import javax.persistence.*
 import kotlin.math.sqrt
@@ -37,21 +36,11 @@ data class Courier(
     val fullName: String,
     @Embedded
     private var _location: LocationReport? = null,
-    private var onShift: Boolean,
-    @OneToMany(mappedBy = "courier")
-    @JsonIgnore // Otherwise we have a cycle!
-    private var _orders: MutableList<Order> = mutableListOf()
+    private var onShift: Boolean
 ) {
 
     val location: LocationReport?
         get() = _location
-
-    val orders: List<Order>
-        get() = _orders
-
-    fun addOrder(order: Order) {
-        _orders.add(order)
-    }
 
     fun startShift() {
         onShift = true
@@ -59,6 +48,15 @@ data class Courier(
 
     fun stopShift() {
         onShift = false
+        // What to do with existing orders?
+        // We can assume that couriers off-shift wouldn't get any more orders, but have to complete active ones
+    }
+
+    fun assignOrder(order: Order): CourierOrder {
+        if (!onShift) {
+            throw Exception("Cannot assign orders to couriers off-shift")
+        }
+        return CourierOrder(order.id, this, order)
     }
 
     fun updateLocation(location: LocationReport) {

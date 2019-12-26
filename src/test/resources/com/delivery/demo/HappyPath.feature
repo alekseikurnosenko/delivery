@@ -33,6 +33,9 @@ Feature: HappyPath
     And "Joes" finishes preparing this order
     Then "Mike" is notified that order preparation finished
 
+    When "Mike" confirm order pickup
+    When "Mike" confirm order dropoff
+
   Scenario: Some other one
     Given A signed-in user
     And user's basket is empty

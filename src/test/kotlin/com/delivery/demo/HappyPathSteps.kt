@@ -167,8 +167,8 @@ class HappyPathSteps : En {
         }
         Then("^\"(.+)\" is assigned to deliver this order") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
-            val orders = restTemplate.getForObject<Array<CourierAssignmentDTO>>(api("/couriers/$courierId/orders"))
-            assertThat(orders.map { it.id }).contains(world.order.id)
+            val orders = restTemplate.getForObject<Array<CourierOrderDTO>>(api("/couriers/$courierId/orders"))
+            assertThat(orders.map { it.orderId }).contains(world.order.id)
         }
         Then("^\"(.+)\" receives this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
@@ -200,6 +200,18 @@ class HappyPathSteps : En {
                 val events = world.events.filterIsInstance<OrderPreparationFinished>().first()
                 assertThat(events.orderId.toString()).isEqualTo(world.order.id)
             }
+        }
+        When("^\"(.+)\" confirm order pickup") { courierName: String ->
+            val courierId = world.couriers.getValue(courierName)
+            val orderId = world.order.id
+            val order =
+                restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmPickup"))
+        }
+        When("^\"(.+)\" confirm order dropoff") { courierName: String ->
+            val courierId = world.couriers.getValue(courierName)
+            val orderId = world.order.id
+            val order =
+                restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmDropoff"))
         }
     }
 

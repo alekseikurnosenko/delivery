@@ -1,6 +1,7 @@
 package com.delivery.demo.basket
 
 import com.delivery.demo.Address
+import com.delivery.demo.courier.CourierOrderRepository
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderItem
@@ -12,12 +13,14 @@ import org.springframework.stereotype.Service
 class PlacerOrderUseCase(
     val courierRepository: CourierRepository,
     val restaurantOrderRepository: RestaurantOrderRepository,
-    val orderRepository: OrderRepository
+    val orderRepository: OrderRepository,
+    val courierOrderRepository: CourierOrderRepository
 ) {
 
     fun place(basket: Basket, deliveryAddress: Address): Order {
+        val restaurant = basket.restaurant
         // Ensure it's still working
-        if (!basket.restaurant.isAcceptingOrders) {
+        if (!restaurant.isAcceptingOrders) {
             throw Exception("Restaurant is not accepting orders")
         }
         // List all couriers that are on shift
@@ -31,7 +34,7 @@ class PlacerOrderUseCase(
         // TODO: does it make sense to allow couriers without location reported?
         val courier = couriers
             .filter { it.location != null }
-            .minBy { it.location!!.latLng.distanceTo(basket.restaurant.address.location) }
+            .minBy { it.location!!.latLng.distanceTo(restaurant.address.location) }
             ?: throw Exception("No courier available")
 
         // TODO: Charge payment
@@ -49,19 +52,20 @@ class PlacerOrderUseCase(
                 order = order
             )
         })
+        // Not sure about this one
         // Set courier
         order.assignToCourier(courier)
         orderRepository.save(order)
 
         // Assign
-        courier.addOrder(order)
-        // Notify restaurant
+        val courierOrder = courier.assignOrder(order)
+        courierOrderRepository.save(courierOrder)
 
-        // ???
+        // Notify restaurant
         // Should probably be outside of this use-case completely
         // As it's not really part of the same transaction
         // 🤔 who is responsible for posting an event?
-        val restaurantOrder = basket.restaurant.placeOrder(order)
+        val restaurantOrder = restaurant.placeOrder(order)
         restaurantOrderRepository.save(restaurantOrder)
 
         return order

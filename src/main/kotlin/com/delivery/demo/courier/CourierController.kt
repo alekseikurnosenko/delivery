@@ -16,26 +16,40 @@ import java.util.*
 )
 @Tag(name = "couriers")
 class CourierController(
-    val courierRepository: CourierRepository
+    val courierRepository: CourierRepository,
+    val courierOrderRepository: CourierOrderRepository
 ) {
 
     @GetMapping("/{courierId}/orders")
     fun orders(
         @PathVariable("courierId", required = true) courierId: UUID
-    ): List<CourierAssignmentDTO> {
-        val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
-        return courier.orders
-            .filter {
-                it.status != OrderStatus.Delivered
-            }
-            .map {
-                CourierAssignmentDTO(
-                    id = it.id.toString(),
-                    restaurantName = it.restaurant.name,
-                    pickupAddress = it.restaurant.address,
-                    deliveryAddress = it.deliveryAddress
-                )
-            }
+    ): List<CourierOrderDTO> {
+        val orders = courierOrderRepository.findByCourierId(courierId)
+        return orders
+            .filter { it.order.status != OrderStatus.Delivered } // Probably not a good idea
+            .map { it.asDTO() }
+    }
+
+    @PostMapping("/{courierId}/orders/{orderId}/confirmPickup")
+    fun confirmPickup(
+        @PathVariable("courierId", required = true) courierId: UUID,
+        @PathVariable("orderId", required = true) orderId: UUID
+    ): CourierOrderDTO {
+        val order = courierOrderRepository.findByCourierIdAndOrderId(courierId, orderId)
+            .orElseThrow { Exception("Unknown courierId: $courierId") }
+        order.confirmPickup()
+        return order.asDTO()
+    }
+
+    @PostMapping("/{courierId}/orders/{orderId}/confirmDropoff")
+    fun confirmDropoff(
+        @PathVariable("courierId", required = true) courierId: UUID,
+        @PathVariable("orderId", required = true) orderId: UUID
+    ): CourierOrderDTO {
+        val order = courierOrderRepository.findByCourierIdAndOrderId(courierId, orderId)
+            .orElseThrow { Exception("Unknown courierId: $courierId") }
+        order.confirmDropoff()
+        return order.asDTO()
     }
 
     @Transactional
@@ -70,13 +84,20 @@ class CourierController(
 
 }
 
-data class CourierAssignmentDTO(
-    val id: String,
+data class UpdateLocationInput(
+    val latLng: LatLng
+)
+
+fun CourierOrder.asDTO() = CourierOrderDTO(
+    orderId = order.id.toString(),
+    restaurantName = order.restaurant.name,
+    pickupAddress = order.restaurant.address,
+    deliveryAddress = order.deliveryAddress
+)
+
+data class CourierOrderDTO(
+    val orderId: String,
     val restaurantName: String,
     val pickupAddress: Address,
     val deliveryAddress: Address
-)
-
-data class UpdateLocationInput(
-    val latLng: LatLng
 )

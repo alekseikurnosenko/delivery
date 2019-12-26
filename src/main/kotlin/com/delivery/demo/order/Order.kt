@@ -43,6 +43,14 @@ data class Order constructor(
         return "${Order::class.java.simpleName}$id"
     }
 
+    fun confirmPickup() {
+        _status = OrderStatus.InDelivery
+    }
+
+    fun confirmDropoff() {
+        _status = OrderStatus.Delivered
+    }
+
     companion object {
         fun place(
             restaurant: Restaurant,

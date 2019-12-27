@@ -9,10 +9,6 @@ import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
-import io.eventuate.tram.inmemory.TramInMemoryConfiguration
-import io.eventuate.tram.messaging.consumer.MessageConsumer
-import io.eventuate.tram.messaging.producer.MessageBuilder
-import io.eventuate.tram.messaging.producer.MessageProducer
 import io.swagger.v3.core.converter.AnnotatedType
 import io.swagger.v3.core.converter.ModelConverter
 import io.swagger.v3.core.converter.ModelConverterContext
@@ -32,7 +28,6 @@ import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Import
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.http.MediaType
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
@@ -40,6 +35,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedDeque
 
 
 @Component
@@ -172,7 +168,7 @@ interface EventPublisher {
 }
 
 interface EventSubscriber {
-    fun <T> subscribe(eventType: Class<T>, topic: String, handler: (T) -> Unit): Subscription
+    fun <T : DomainEvent> subscribe(eventType: Class<T>, topic: String, handler: (T) -> Unit): Subscription
 }
 
 interface Subscription {
@@ -180,42 +176,42 @@ interface Subscription {
 }
 
 @Configuration
-@Import(TramInMemoryConfiguration::class)
 class AbstractTramEventTestConfiguration {
 
+    private val subscribers = ConcurrentLinkedDeque<Pair<Pair<String, Class<out DomainEvent>>, (DomainEvent) -> Unit>>()
     private val EVENT_TYPE_HEADER = "event_type"
 
     @Bean
-    fun eventPublisher(messageProducer: MessageProducer, objectMapper: ObjectMapper): EventPublisher {
+    fun eventPublisher(objectMapper: ObjectMapper): EventPublisher {
         return object : EventPublisher {
             override fun publish(topic: String, events: List<DomainEvent>) {
-                events.forEach {
-                    val message = MessageBuilder.withPayload(objectMapper.writeValueAsString(it))
-                        .withHeader(EVENT_TYPE_HEADER, it::class.java.name)
-                        .build()
-                    messageProducer.send(topic, message)
+                events.forEach { event ->
+                    val key = topic to event::class.java
+                    subscribers.filter { it.first == key }.forEach { it.second(event) }
                 }
             }
         }
     }
 
     @Bean
-    fun eventSubscriber(messageConsumer: MessageConsumer, objectMapper: ObjectMapper): EventSubscriber {
+    fun eventSubscriber(objectMapper: ObjectMapper): EventSubscriber {
         val subscriberId = UUID.randomUUID().toString()
         return object : EventSubscriber {
-            override fun <T> subscribe(eventType: Class<T>, topic: String, handler: (T) -> Unit): Subscription {
-                val subscription = messageConsumer.subscribe(subscriberId, setOf(topic)) {
-                    val type = it.getRequiredHeader(EVENT_TYPE_HEADER)
-                    if (type != eventType.name) {
-                        return@subscribe
-                    }
-                    val event = objectMapper.readValue(it.payload, eventType)
-                    handler(event)
-                }
+            override fun <T : DomainEvent> subscribe(
+                eventType: Class<T>,
+                topic: String,
+                handler: (T) -> Unit
+            ): Subscription {
+                val key = topic to eventType
+                val handler = handler as (DomainEvent) -> Unit
+                val item = key to handler
+                subscribers.add(item)
+
                 return object : Subscription {
                     override fun unsubscribe() {
-                        subscription.unsubscribe()
+                        subscribers.remove(item)
                     }
+
                 }
             }
         }

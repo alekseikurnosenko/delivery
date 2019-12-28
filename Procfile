@@ -1,1 +1,1 @@
-web: java -javaagent:dd-java-agent.jar -jar build/libs/*
+web: java $JAVA_OPTS -javaagent:dd-java-agent.jar -jar build/libs/* --port $PORT

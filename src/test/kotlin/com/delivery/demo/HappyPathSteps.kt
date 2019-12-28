@@ -56,7 +56,8 @@ class HappyPathSteps : En {
 
     @LocalServerPort
     var serverPort = 80
-    var endpoint = "localhost" // "enigmatic-garden-23553.herokuapp.com"
+    var endpoint = "localhost"
+//    var endpoint = "enigmatic-garden-23553.herokuapp.com"
 
     private val locationMap = mapOf(
         "PointA" to LatLng(0.0f, 0.0f),
@@ -119,17 +120,17 @@ class HappyPathSteps : En {
             // Aka, on service one, one normal one?
         }
         Given("user's basket is empty") {
-            val response = restTemplate.getForObject<BasketDTO?>("http://localhost:$serverPort/api/basket")
+            val response = restTemplate.getForObject<BasketDTO?>(api("/basket"))
             assert(response == null)
         }
         When("user browses list of restaurants") {
             world.restaurants =
-                restTemplate.getForObject<Array<RestaurantDTO>>("http://localhost:$serverPort/api/restaurants")
+                restTemplate.getForObject<Array<RestaurantDTO>>(api("/restaurants"))
         }
         When("^user browses dishes of \"(.*)\" restaurant$") { restaurantName: String ->
             world.selectedRestaurant = world.restaurants.first { it.name == restaurantName }
             world.dishes =
-                restTemplate.getForObject<Array<DishDTO>>("http://localhost:$serverPort/api/restaurants/${world.selectedRestaurant.id}/dishes")
+                restTemplate.getForObject<Array<DishDTO>>(api("/restaurants/${world.selectedRestaurant.id}/dishes"))
         }
         When("^user adds (.*) \"(.*)\" to basket$") { quantity: Int, dishName: String ->
             val dish = world.dishes.first { it.name == dishName }
@@ -139,10 +140,10 @@ class HappyPathSteps : En {
                 quantity = quantity
             )
             world.basket =
-                restTemplate.postForObject<BasketDTO>("http://localhost:$serverPort/api/basket/addItem", input)
+                restTemplate.postForObject<BasketDTO>(api("/basket/addItem"), input)
         }
         Then("user's basket should not be empty") {
-            val response = restTemplate.getForObject<BasketDTO>("http://localhost:$serverPort/api/basket")
+            val response = restTemplate.getForObject<BasketDTO>(api("/basket"))
             assertThat(response.items).isNotEmpty
         }
         Then("^user's basket total amount should be (.+)") { totalAmount: Double ->
@@ -150,7 +151,7 @@ class HappyPathSteps : En {
             assertThat(world.basket.totalAmount.amount).isEqualTo(totalAmount)
         }
         When("user performs checkout") {
-            world.order = restTemplate.postForObject<OrderDTO>("http://localhost:$serverPort/api/basket/checkout")
+            world.order = restTemplate.postForObject<OrderDTO>(api("/basket/checkout"))
         }
         Given("^a courier \"(.+)\"") { courierName: String ->
             val input = CreateCourierInput(name = courierName)

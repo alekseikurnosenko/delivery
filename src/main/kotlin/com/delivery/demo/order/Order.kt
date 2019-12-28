@@ -1,6 +1,9 @@
 package com.delivery.demo.order
 
 import com.delivery.demo.Address
+import com.delivery.demo.Aggregate
+import com.delivery.demo.DomainEvent
+import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
@@ -10,29 +13,56 @@ import javax.persistence.*
 
 @Entity
 @Table(name = "orders")
-data class Order constructor(
+class Order constructor(
     @Id
     val id: UUID = UUID.randomUUID(),
+    restaurant: Restaurant,
+    deliveryAddress: Address,
+    items: List<BasketItem> // Can be an interface?
+) : Aggregate() {
+
+    val deliveryAddress: Address = deliveryAddress
+
     @ManyToOne
     @JoinColumn(name = "restaurant_id")
-    val restaurant: Restaurant,
+    val restaurant: Restaurant = restaurant
+
     @ManyToOne
     @JoinColumn(name = "courier_id")
-    private var courier: Courier? = null,
-    val deliveryAddress: Address,
+    private var courier: Courier? = null
+
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
-    val items: MutableList<OrderItem> = mutableListOf(),
-    private var _status: OrderStatus
-) {
-    val status: OrderStatus
-        get() = _status
+    val items: List<OrderItem> = items.map { OrderItem(dish = it.dish, quantity = it.quantity, order = this) }
+
+    var status: OrderStatus = OrderStatus.Placed
+        protected set
 
     fun startPreparing() {
-        _status = OrderStatus.Preparing
+        if (status == OrderStatus.Preparing) {
+            // Idempotent
+            return
+        }
+        if (status == OrderStatus.Placed) {
+            status = OrderStatus.Preparing
+            registerEvent(OrderPreparationStarted(id))
+            return
+        }
+
+        throw Exception("Cannot start preparing, order is $status")
     }
 
-    fun completePreparing() {
-        _status = OrderStatus.AwaitingPickup
+    fun finishPreparing() {
+        if (status == OrderStatus.AwaitingPickup) {
+            // Idempotent
+            return
+        }
+        if (status == OrderStatus.Preparing) {
+            status = OrderStatus.AwaitingPickup
+            registerEvent(OrderPreparationFinished(id))
+            return
+        }
+
+        throw Exception("Cannot finish preparing, order is $status")
     }
 
     fun assignToCourier(courier: Courier) {
@@ -44,24 +74,23 @@ data class Order constructor(
     }
 
     fun confirmPickup() {
-        _status = OrderStatus.InDelivery
+        status = OrderStatus.InDelivery
     }
 
     fun confirmDropoff() {
-        _status = OrderStatus.Delivered
+        status = OrderStatus.Delivered
     }
 
     companion object {
         fun place(
             restaurant: Restaurant,
             deliveryAddress: Address,
-            items: MutableList<OrderItem>
+            items: List<BasketItem>
         ): Order {
             return Order(
                 restaurant = restaurant,
                 deliveryAddress = deliveryAddress,
-                items = items,
-                _status = OrderStatus.Placed
+                items = items
             )
         }
     }
@@ -88,9 +117,13 @@ data class OrderItem(
 
 enum class OrderStatus {
     Placed,
-    Paid,
+    //    Paid,
     Preparing, // Restaurant has started preparing the order
     AwaitingPickup, // Restaurant has finsihed preparing and is awaiting courier arrival
     InDelivery, // Courier has picked up an order and is on the way to client
     Delivered, // Order was successfuly delivered to client
 }
+
+data class OrderPreparationStarted(val orderId: UUID) : DomainEvent
+
+data class OrderPreparationFinished(val orderId: UUID) : DomainEvent

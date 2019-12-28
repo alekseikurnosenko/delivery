@@ -4,7 +4,6 @@ import com.delivery.demo.Address
 import com.delivery.demo.courier.CourierOrderRepository
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
-import com.delivery.demo.order.OrderItem
 import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.restaurant.RestaurantOrderRepository
 import org.springframework.stereotype.Service
@@ -43,15 +42,8 @@ class PlacerOrderUseCase(
         val order = Order.place(
             restaurant = basket.restaurant,
             deliveryAddress = deliveryAddress,
-            items = mutableListOf()
+            items = basket.items
         )
-        order.items.addAll(basket.items.map {
-            OrderItem(
-                dish = it.dish,
-                quantity = it.quantity,
-                order = order
-            )
-        })
         // Not sure about this one
         // Set courier
         order.assignToCourier(courier)

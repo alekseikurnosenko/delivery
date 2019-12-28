@@ -38,6 +38,7 @@ class CourierController(
             .map { it.asDTO() }
     }
 
+    @Transactional
     @PostMapping("/{courierId}/orders/{orderId}/confirmPickup")
     fun confirmPickup(
         @PathVariable("courierId", required = true) courierId: UUID,
@@ -49,6 +50,7 @@ class CourierController(
         return order.asDTO()
     }
 
+    @Transactional
     @PostMapping("/{courierId}/orders/{orderId}/confirmDropoff")
     fun confirmDropoff(
         @PathVariable("courierId", required = true) courierId: UUID,

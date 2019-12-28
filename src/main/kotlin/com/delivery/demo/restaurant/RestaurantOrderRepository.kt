@@ -1,10 +1,11 @@
 package com.delivery.demo.restaurant
 
+import com.delivery.demo.order.OrderStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.*
 
 interface RestaurantOrderRepository : JpaRepository<RestaurantOrder, UUID> {
     fun findByRestaurantId(restaurantId: UUID): List<RestaurantOrder>
-    fun findByRestaurantIdAndStatus(restaurantId: UUID, status: RestaurantOrderStatus): List<RestaurantOrder>
+    fun findByRestaurantIdAndOrderStatus(restaurantId: UUID, status: OrderStatus): List<RestaurantOrder>
     fun findByRestaurantIdAndOrderId(restaurantId: UUID, orderId: UUID): Optional<RestaurantOrder>
 }

@@ -44,7 +44,7 @@ class Restaurant(
         if (!isAcceptingOrders) {
             throw Exception("Cannot place order since the restaurant is not accepting any")
         }
-        return RestaurantOrder(id, RestaurantOrderStatus.Pending, order)
+        return RestaurantOrder(id, order)
     }
 
 }

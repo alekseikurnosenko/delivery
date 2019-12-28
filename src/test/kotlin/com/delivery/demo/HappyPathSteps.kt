@@ -4,6 +4,9 @@ import com.delivery.demo.basket.AddItemToBasketInput
 import com.delivery.demo.basket.BasketDTO
 import com.delivery.demo.courier.*
 import com.delivery.demo.order.OrderDTO
+import com.delivery.demo.order.OrderPreparationFinished
+import com.delivery.demo.order.OrderPreparationStarted
+import com.delivery.demo.order.OrderStatus
 import com.delivery.demo.restaurant.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.datatable.DataTable
@@ -11,6 +14,7 @@ import io.cucumber.java8.En
 import io.cucumber.spring.CucumberTestContext
 import org.assertj.core.api.Assertions.assertThat
 import org.joda.money.CurrencyUnit
+import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootContextLoader
 import org.springframework.boot.test.context.SpringBootTest
@@ -175,16 +179,12 @@ class HappyPathSteps : En {
         When("^\"(.+)\" starts to prepare this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
             val orderId = world.order.id
-            val order =
-                restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/startPreparing"))
-            assertThat(order.status).isEqualTo(RestaurantOrderStatus.Active)
+            restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/startPreparing"))
         }
         When("^\"(.+)\" finishes preparing this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
             val orderId = world.order.id
-            val order =
-                restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/finishPreparing"))
-            assertThat(order.status).isEqualTo(RestaurantOrderStatus.Completed)
+            restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/finishPreparing"))
         }
         Then("^\"(.+)\" is notified that order preparation started") { courierName: String ->
             retry {
@@ -201,14 +201,25 @@ class HappyPathSteps : En {
         When("^\"(.+)\" confirm order pickup") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
             val orderId = world.order.id
-            val order =
-                restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmPickup"))
+            restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmPickup"))
         }
         When("^\"(.+)\" confirm order dropoff") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
             val orderId = world.order.id
-            val order =
-                restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmDropoff"))
+            restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmDropoff"))
+        }
+        Then("^user can see their order as \"(.+)\"") { status: String ->
+            val orderId = world.order.id
+            val order = restTemplate.getForObject<OrderDTO>(api("/orders/$orderId"))
+            val desiredState = when (status) {
+                "placed" -> OrderStatus.Placed
+                "being prepared" -> OrderStatus.Preparing
+                "being picked up" -> OrderStatus.AwaitingPickup
+                "in delivery" -> OrderStatus.InDelivery
+                "delivered" -> OrderStatus.Delivered
+                else -> fail("Unknown order status")
+            }
+            assertThat(order.status).isEqualTo(desiredState)
         }
     }
 

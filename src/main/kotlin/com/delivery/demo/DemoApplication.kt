@@ -2,8 +2,8 @@ package com.delivery.demo
 
 import com.delivery.demo.basket.BasketRepository
 import com.delivery.demo.courier.CourierRepository
-import com.delivery.demo.restaurant.OrderPreparationFinished
-import com.delivery.demo.restaurant.OrderPreparationStarted
+import com.delivery.demo.order.OrderPreparationFinished
+import com.delivery.demo.order.OrderPreparationStarted
 import com.delivery.demo.restaurant.RestaurantRepository
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser

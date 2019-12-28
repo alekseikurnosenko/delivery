@@ -1,7 +1,7 @@
 package com.delivery.demo
 
-import com.delivery.demo.restaurant.OrderPreparationFinished
-import com.delivery.demo.restaurant.OrderPreparationStarted
+import com.delivery.demo.order.OrderPreparationFinished
+import com.delivery.demo.order.OrderPreparationStarted
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus

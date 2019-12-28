@@ -29,12 +29,17 @@ Feature: HappyPath
 
     When "Joes" starts to prepare this order
     Then "Mike" is notified that order preparation started
+    And user can see their order as "being prepared"
 
-    And "Joes" finishes preparing this order
+    When "Joes" finishes preparing this order
     Then "Mike" is notified that order preparation finished
+    And user can see their order as "being picked up"
 
     When "Mike" confirm order pickup
+    And user can see their order as "in delivery"
+
     When "Mike" confirm order dropoff
+    And user can see their order as "delivered"
 
   Scenario: Some other one
     Given A signed-in user

@@ -4,6 +4,7 @@ import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
 import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.order.OrderDTO
+import com.delivery.demo.order.OrderStatus
 import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -86,20 +87,21 @@ class RestaurantController(
     @GetMapping("/{restaurantId}/orders")
     fun orders(
         @PathVariable("restaurantId", required = true) restaurantId: UUID,
-        @RequestParam(required = false) status: RestaurantOrderStatus?
+        @RequestParam(required = false) status: OrderStatus?
     ): List<RestaurantOrderDTO> {
         return if (status != null) {
-            restaurantOrderRepository.findByRestaurantIdAndStatus(restaurantId, status).map { it.asDTO() }
+            restaurantOrderRepository.findByRestaurantIdAndOrderStatus(restaurantId, status).map { it.asDTO() }
         } else {
             restaurantOrderRepository.findByRestaurantId(restaurantId).map { it.asDTO() }
         }
     }
 
+    @Transactional
     @PostMapping("/{restaurantId}/orders/{orderId}/startPreparing")
     fun startPreparingOrder(
         @PathVariable("restaurantId", required = true) restaurantId: UUID,
         @PathVariable("orderId", required = true) orderId: UUID,
-        @RequestParam(required = false) status: RestaurantOrderStatus?
+        @RequestParam(required = false) status: OrderStatus?
     ): RestaurantOrderDTO {
         val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
             ResourceNotFoundException("Restaurant or Order not found")
@@ -110,11 +112,12 @@ class RestaurantController(
         return order.asDTO()
     }
 
+    @Transactional
     @PostMapping("/{restaurantId}/orders/{orderId}/finishPreparing")
     fun finishPreparingOrder(
         @PathVariable("restaurantId", required = true) restaurantId: UUID,
         @PathVariable("orderId", required = true) orderId: UUID,
-        @RequestParam(required = false) status: RestaurantOrderStatus?
+        @RequestParam(required = false) status: OrderStatus?
     ): RestaurantOrderDTO {
         val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
             ResourceNotFoundException("Restaurant or Order not found")
@@ -173,11 +176,9 @@ data class DishDTO(
 )
 
 data class RestaurantOrderDTO(
-    val status: RestaurantOrderStatus,
     val order: OrderDTO
 )
 
 fun RestaurantOrder.asDTO() = RestaurantOrderDTO(
-    status = status,
     order = order.asDTO()
 )

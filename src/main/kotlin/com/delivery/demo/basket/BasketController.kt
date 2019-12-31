@@ -1,6 +1,7 @@
 package com.delivery.demo.basket
 
 import com.delivery.demo.Address
+import com.delivery.demo.EventPublisher
 import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.courier.LatLng
 import com.delivery.demo.order.OrderDTO
@@ -26,14 +27,15 @@ import javax.validation.Valid
 class BasketController(
     val restaurantRepository: RestaurantRepository,
     val basketRepository: BasketRepository,
-    val placeOrderUseCase: PlacerOrderUseCase
+    val placeOrderUseCase: PlacerOrderUseCase,
+    val eventPublisher: EventPublisher
 ) {
 
     @GetMapping("")
     fun basket(): BasketDTO? {
         // if we have user profile - it's easy
         // what if user is a guest?
-        val owner = SecurityContextHolder.getContext().authentication.principal as String
+        val owner = userId()
 
         return basketRepository.findByOwner(owner).map { it.asDTO() }.orElse(null)
     }
@@ -50,7 +52,7 @@ class BasketController(
             throw Exception("Invalid quantity")
         }
 
-        val owner = SecurityContextHolder.getContext().authentication.principal as String
+        val owner = userId()
         // find current basket
         // if missing, create one
         // Should it be the controller's job to do it?
@@ -81,7 +83,7 @@ class BasketController(
             throw Exception("Invalid quantity")
         }
 
-        val owner = SecurityContextHolder.getContext().authentication.principal as String
+        val owner = userId()
         val basket = basketRepository.findByOwner(owner).orElseThrow { Exception("No basket avaialble") }
 
         basket.removeItem(dish, input.quantity)
@@ -91,11 +93,20 @@ class BasketController(
 
     @PostMapping("/checkout")
     fun checkout(): OrderDTO {
-        val owner = SecurityContextHolder.getContext().authentication.principal as String
+        val owner = userId()
         val basket = basketRepository.findByOwner(owner).orElseThrow { Exception("No basket avaialble") }
 
         // TODO: Address should be set at the very beginning before searching
-        return placeOrderUseCase.place(basket, Address(LatLng(-5.0f, -5.0f), "Some", "City", "US")).asDTO()
+        val order = placeOrderUseCase.place(basket, Address(LatLng(-5.0f, -5.0f), "Some", "City", "US"))
+
+        eventPublisher.publish("Order", order.events)
+
+        return order.asDTO()
+    }
+
+    fun userId(): String {
+        return SecurityContextHolder.getContext().authentication.principal as String
+//        return "Jake"
     }
 }
 

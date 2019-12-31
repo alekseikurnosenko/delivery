@@ -44,12 +44,16 @@ class Restaurant(
         if (!isAcceptingOrders) {
             throw Exception("Cannot place order since the restaurant is not accepting any")
         }
-        return RestaurantOrder(id, order)
+        return RestaurantOrder(
+            restaurantId = id,
+            order = order
+        )
     }
 
 }
 
 @Entity
+@Table(name = "dishes")
 class Dish(
     @Id
     val id: UUID,

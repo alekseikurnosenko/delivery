@@ -104,7 +104,7 @@ class RestaurantController(
         @RequestParam(required = false) status: OrderStatus?
     ): RestaurantOrderDTO {
         val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
-            ResourceNotFoundException("Restaurant or Order not found")
+            ResourceNotFoundException("Restaurant(id=$restaurantId) or Order(id=$orderId) not found")
         }
         order.startPreparing()
 
@@ -120,7 +120,7 @@ class RestaurantController(
         @RequestParam(required = false) status: OrderStatus?
     ): RestaurantOrderDTO {
         val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
-            ResourceNotFoundException("Restaurant or Order not found")
+            ResourceNotFoundException("Restaurant(id=$restaurantId) or Order(id=$orderId) not found")
         }
         order.finishPreparing()
 

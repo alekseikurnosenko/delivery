@@ -40,10 +40,9 @@ data class Basket(
         }
 
     fun addItem(dish: Dish, quantity: Int) {
-        val basketItemIndex = _items.indexOfFirst { it.dish == dish }
+        val basketItemIndex = _items.indexOfFirst { it.dish.id == dish.id }
         if (basketItemIndex != -1) {
-            val basketItem = _items[basketItemIndex]
-            _items[basketItemIndex] = basketItem.copy(quantity = basketItem.quantity + quantity)
+            _items[basketItemIndex].quantity = _items[basketItemIndex].quantity + quantity
         } else {
             _items.add(
                 BasketItem(
@@ -56,12 +55,13 @@ data class Basket(
     }
 
     fun removeItem(dish: Dish, quantity: Int) {
-        val basketItemIndex = _items.indexOfFirst { it.dish == dish }
+        val basketItemIndex = _items.indexOfFirst { it.dish.id == dish.id }
+        // Don't fail trying to remove non-existent items
         val basketItem = if (basketItemIndex > 0) _items[basketItemIndex] else return
         if (quantity >= basketItem.quantity) {
-            _items.removeAt(basketItemIndex)
+            _items.remove(basketItem)
         } else {
-            _items[basketItemIndex] = basketItem.copy(quantity = basketItem.quantity - quantity)
+            basketItem.quantity -= quantity
         }
     }
 
@@ -89,7 +89,7 @@ data class BasketItem(
     @ManyToOne
     @JoinColumn(name = "dish_id")
     val dish: Dish,
-    val quantity: Int,
+    var quantity: Int,
     @ManyToOne
     @JoinColumn(name = "basket_id")
     val basket: Basket

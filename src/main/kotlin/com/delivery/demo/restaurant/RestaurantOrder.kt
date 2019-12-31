@@ -3,14 +3,16 @@ package com.delivery.demo.restaurant
 import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.order.Order
+import java.io.Serializable
 import java.util.*
 import javax.persistence.*
 
 @Entity
 @Table(name = "restaurant_orders")
+@IdClass(RestaurantOrderId::class)
 class RestaurantOrder(
     @Id val restaurantId: UUID,
-    @OneToOne @JoinColumn(name = "order_id") val order: Order
+    @Id @OneToOne @JoinColumn(name = "order_id") val order: Order
 ) : Aggregate() {
 
     fun startPreparing() {
@@ -24,3 +26,8 @@ class RestaurantOrder(
     override val events: List<DomainEvent>
         get() = order.events
 }
+
+class RestaurantOrderId(
+    var restaurantId: UUID? = null,
+    var order: UUID? = null
+) : Serializable

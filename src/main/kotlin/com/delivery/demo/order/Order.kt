@@ -67,6 +67,7 @@ class Order constructor(
 
     fun assignToCourier(courier: Courier) {
         this.courier = courier
+        registerEvent(OrderAssigned(id, courier.id))
     }
 
     override fun toString(): String {
@@ -87,11 +88,21 @@ class Order constructor(
             deliveryAddress: Address,
             items: List<BasketItem>
         ): Order {
-            return Order(
+            val order = Order(
                 restaurant = restaurant,
                 deliveryAddress = deliveryAddress,
                 items = items
             )
+
+            // Do we also need to include all items here?
+            // Or like, whole Order object?
+            val event = OrderPlaced(
+                orderId = order.id,
+                restaurantId = restaurant.id
+            )
+            order.registerEvent(event)
+
+            return order
         }
     }
 }
@@ -127,3 +138,7 @@ enum class OrderStatus {
 data class OrderPreparationStarted(val orderId: UUID) : DomainEvent
 
 data class OrderPreparationFinished(val orderId: UUID) : DomainEvent
+
+data class OrderPlaced(val orderId: UUID, val restaurantId: UUID) : DomainEvent
+
+data class OrderAssigned(val orderId: UUID, val courierId: UUID) : DomainEvent

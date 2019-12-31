@@ -1,5 +1,7 @@
 package com.delivery.demo
 
+import com.delivery.demo.order.OrderAssigned
+import com.delivery.demo.order.OrderPlaced
 import com.delivery.demo.order.OrderPreparationFinished
 import com.delivery.demo.order.OrderPreparationStarted
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -19,6 +21,12 @@ class SocketHandler(
 ) : TextWebSocketHandler() {
 
     init {
+        eventSubscriber.subscribe(OrderAssigned::class.java, "Order") { event ->
+            send(event)
+        }
+        eventSubscriber.subscribe(OrderPlaced::class.java, "Order") { event ->
+            send(event)
+        }
         eventSubscriber.subscribe(OrderPreparationStarted::class.java, "Order") { event ->
             send(event)
         }

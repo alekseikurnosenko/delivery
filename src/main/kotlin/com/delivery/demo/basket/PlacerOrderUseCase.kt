@@ -1,19 +1,19 @@
 package com.delivery.demo.basket
 
-import com.delivery.demo.courier.CourierOrderRepository
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.restaurant.RestaurantOrderRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
+@Transactional
 class PlacerOrderUseCase(
     val basketRepository: BasketRepository,
     val courierRepository: CourierRepository,
     val restaurantOrderRepository: RestaurantOrderRepository,
-    val orderRepository: OrderRepository,
-    val courierOrderRepository: CourierOrderRepository
+    val orderRepository: OrderRepository
 ) {
 
     fun place(basket: Basket): Order {
@@ -33,7 +33,9 @@ class PlacerOrderUseCase(
         // TODO: does it make sense to allow couriers without location reported?
         val courier = couriers
             .filter { it.location != null }
+//            .sortedBy { it. }
             // FIXME: need to filter only free couriers!
+            // Or at at-least distribute orders evenly
             .minBy { it.location!!.latLng.distanceTo(restaurant.address.location) }
             ?: throw Exception("No courier available")
 
@@ -45,16 +47,20 @@ class PlacerOrderUseCase(
             deliveryAddress = basket.deliveryAddress,
             items = basket.items
         )
-        // Not sure about this one
-        // Set courier
-        // NOTE: currently this part emits event!
-        order.assignToCourier(courier)
-        // >< since we save entity, transient fields dissapear?
+//        // Not sure about this one
+//        // Set courier
+//        // NOTE: currently this part emits event!
+//        order.assignToCourier(courier)
+//        // >< since we save entity, transient fields dissapear?
         orderRepository.save(order)
 
         // Assign
         val courierOrder = courier.assignOrder(order)
-        courierOrderRepository.save(courierOrder)
+        // 🤔 So why are we supposed to save courier here?
+        // while returning an order?
+        // And I still don't like that it happens in two steps
+        courierRepository.save(courier)
+
 
 
         // Notify restaurant

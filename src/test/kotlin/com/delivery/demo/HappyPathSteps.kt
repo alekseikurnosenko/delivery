@@ -2,7 +2,10 @@ package com.delivery.demo
 
 import com.delivery.demo.basket.AddItemToBasketInput
 import com.delivery.demo.basket.BasketDTO
-import com.delivery.demo.courier.*
+import com.delivery.demo.courier.CourierDTO
+import com.delivery.demo.courier.CreateCourierInput
+import com.delivery.demo.courier.LatLng
+import com.delivery.demo.courier.UpdateLocationInput
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.OrderPreparationFinished
 import com.delivery.demo.order.OrderPreparationStarted
@@ -170,8 +173,8 @@ class HappyPathSteps : En {
         }
         Then("^\"(.+)\" is assigned to deliver this order") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
-            val orders = restTemplate.getForObject<Array<CourierOrderDTO>>(api("/couriers/$courierId/orders"))
-            assertThat(orders.map { it.orderId }).contains(world.order.id)
+            val orders = restTemplate.getForObject<Array<OrderDTO>>(api("/couriers/$courierId/orders"))
+            assertThat(orders.map { it.id }).contains(world.order.id)
         }
         Then("^\"(.+)\" receives this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
@@ -203,12 +206,12 @@ class HappyPathSteps : En {
         When("^\"(.+)\" confirm order pickup") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
             val orderId = world.order.id
-            restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmPickup"))
+            restTemplate.postForObject<OrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmPickup"))
         }
         When("^\"(.+)\" confirm order dropoff") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
             val orderId = world.order.id
-            restTemplate.postForObject<CourierOrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmDropoff"))
+            restTemplate.postForObject<OrderDTO>(api("/couriers/$courierId/orders/$orderId/confirmDropoff"))
         }
         Then("^user can see their order as \"(.+)\"") { status: String ->
             val orderId = world.order.id

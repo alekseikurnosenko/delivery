@@ -42,6 +42,10 @@ data class Courier(
     private var onShift: Boolean
 ) : Aggregate() {
 
+    @OneToMany(cascade = [CascadeType.ALL])
+    @JoinTable
+    val activeOrders: MutableList<Order> = mutableListOf()
+
     val location: LocationReport?
         get() = _location
 
@@ -55,11 +59,27 @@ data class Courier(
         // We can assume that couriers off-shift wouldn't get any more orders, but have to complete active ones
     }
 
-    fun assignOrder(order: Order): CourierOrder {
+    fun assignOrder(order: Order): Order {
         if (!onShift) {
             throw Exception("Cannot assign orders to couriers off-shift")
         }
-        return CourierOrder(order.id, this, order)
+//        val order = CourierOrder(order.id, this, order)
+        order.assignToCourier(this)
+        activeOrders.add(order)
+        return order
+    }
+
+    fun confirmOrderPickup(orderId: UUID): Order {
+        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order")
+        order.confirmPickup()
+        return order
+    }
+
+    fun confirmOrderDropoff(orderId: UUID): Order {
+        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order")
+        order.confirmDropoff()
+        activeOrders.remove(order)
+        return order
     }
 
     fun updateLocation(location: LocationReport) {

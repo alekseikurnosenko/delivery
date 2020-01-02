@@ -1,9 +1,7 @@
 package com.delivery.demo
 
-import com.delivery.demo.order.OrderAssigned
-import com.delivery.demo.order.OrderPlaced
-import com.delivery.demo.order.OrderPreparationFinished
-import com.delivery.demo.order.OrderPreparationStarted
+import com.delivery.demo.courier.CourierLocationUpdated
+import com.delivery.demo.order.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
@@ -21,16 +19,27 @@ class SocketHandler(
 ) : TextWebSocketHandler() {
 
     init {
-        eventSubscriber.subscribe(OrderAssigned::class.java, "Order") { event ->
+        eventSubscriber.subscribeAll(
+            listOf(
+                CourierLocationUpdated::class.java
+            ),
+            "Courier"
+        ) { event ->
+            println("sending $event")
             send(event)
         }
-        eventSubscriber.subscribe(OrderPlaced::class.java, "Order") { event ->
-            send(event)
-        }
-        eventSubscriber.subscribe(OrderPreparationStarted::class.java, "Order") { event ->
-            send(event)
-        }
-        eventSubscriber.subscribe(OrderPreparationFinished::class.java, "Order") { event ->
+        eventSubscriber.subscribeAll(
+            listOf(
+                OrderAssigned::class.java,
+                OrderPlaced::class.java,
+                OrderPreparationStarted::class.java,
+                OrderPreparationFinished::class.java,
+                OrderPickedUp::class.java,
+                OrderDelivered::class.java
+            ),
+            "Order"
+        ) { event ->
+            println("sending $event")
             send(event)
         }
     }

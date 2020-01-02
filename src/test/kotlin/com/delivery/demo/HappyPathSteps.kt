@@ -7,6 +7,7 @@ import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.OrderPreparationFinished
 import com.delivery.demo.order.OrderPreparationStarted
 import com.delivery.demo.order.OrderStatus
+import com.delivery.demo.profile.Profile
 import com.delivery.demo.restaurant.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.datatable.DataTable
@@ -221,6 +222,11 @@ class HappyPathSteps : En {
                 else -> fail("Unknown order status")
             }
             assertThat(order.status).isEqualTo(desiredState)
+        }
+        When("^user sets their address to be near \"(.+)\"") { locationName: String ->
+            val address = Address(locationMap.getValue(locationName), "Fake", "Fake", "Fake")
+            restTemplate.postForObject<Profile>(api("/profile/address"), address)
+
         }
     }
 

@@ -8,6 +8,7 @@ import com.delivery.demo.order.OrderStatus
 import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.joda.money.CurrencyUnit
@@ -145,13 +146,16 @@ class ResourceNotFoundException(message: String) : RuntimeException(message)
 
 
 fun Restaurant.asDTO(): RestaurantDTO = RestaurantDTO(
-    id.toString(),
-    name
+    id = id.toString(),
+    name = name,
+    address = address
 )
 
+@Schema(name = "Restaurant")
 data class RestaurantDTO(
     val id: String,
-    val name: String
+    val name: String,
+    val address: Address
 )
 
 fun Dish.asDTO(): DishDTO = DishDTO(

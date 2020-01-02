@@ -36,8 +36,13 @@ class Restaurant(
         return dish
     }
 
-    fun newBasket(owner: String): Basket {
-        return Basket(UUID.randomUUID(), owner, this)
+    fun newBasket(owner: String, deliveryAddress: Address): Basket {
+        return Basket(
+            id = UUID.randomUUID(),
+            owner = owner,
+            deliveryAddress = deliveryAddress,
+            restaurant = this
+        )
     }
 
     fun placeOrder(order: Order): RestaurantOrder {

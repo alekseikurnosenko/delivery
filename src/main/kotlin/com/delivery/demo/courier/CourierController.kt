@@ -1,6 +1,7 @@
 package com.delivery.demo.courier
 
 import com.delivery.demo.Address
+import com.delivery.demo.EventPublisher
 import com.delivery.demo.order.OrderStatus
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.MediaType
@@ -17,7 +18,8 @@ import java.util.*
 @Tag(name = "couriers")
 class CourierController(
     val courierRepository: CourierRepository,
-    val courierOrderRepository: CourierOrderRepository
+    val courierOrderRepository: CourierOrderRepository,
+    val eventPublisher: EventPublisher
 ) {
 
     @PostMapping("")
@@ -26,6 +28,11 @@ class CourierController(
     ): CourierDTO {
         val courier = Courier.new(input.name)
         return courierRepository.save(courier).asDTO()
+    }
+
+    @GetMapping("")
+    fun couriers(): List<CourierDTO> {
+        return courierRepository.findAll().map { it.asDTO() }
     }
 
     @GetMapping("/{courierId}/orders")
@@ -47,6 +54,8 @@ class CourierController(
         val order = courierOrderRepository.findByCourierIdAndOrderId(courierId, orderId)
             .orElseThrow { Exception("Unknown courierId: $courierId") }
         order.confirmPickup()
+
+        eventPublisher.publish("Order", order.events)
         return order.asDTO()
     }
 
@@ -59,6 +68,8 @@ class CourierController(
         val order = courierOrderRepository.findByCourierIdAndOrderId(courierId, orderId)
             .orElseThrow { Exception("Unknown courierId: $courierId") }
         order.confirmDropoff()
+
+        eventPublisher.publish("Order", order.events)
         return order.asDTO()
     }
 
@@ -70,6 +81,8 @@ class CourierController(
     ): CourierDTO {
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.updateLocation(LocationReport(input.latLng, Date()))
+
+        eventPublisher.publish("Courier", courier.events)
         return courier.asDTO()
     }
 

@@ -3,11 +3,15 @@ package com.delivery.demo.order
 import com.delivery.demo.Address
 import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
+import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
+import com.delivery.demo.restaurant.asDTO
 import com.fasterxml.jackson.annotation.JsonIgnore
+import io.swagger.v3.oas.annotations.media.Schema
+import org.joda.money.Money
 import java.util.*
 import javax.persistence.*
 
@@ -29,13 +33,19 @@ class Order constructor(
 
     @ManyToOne
     @JoinColumn(name = "courier_id")
-    private var courier: Courier? = null
+    var courier: Courier? = null
+        protected set
 
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
     val items: List<OrderItem> = items.map { OrderItem(dish = it.dish, quantity = it.quantity, order = this) }
 
     var status: OrderStatus = OrderStatus.Placed
         protected set
+
+    val totalAmount: Money
+        get() = items.map { it.dish.price.multipliedBy(it.quantity.toLong()) }.reduce { acc, money ->
+            acc + money
+        }
 
     fun startPreparing() {
         if (status == OrderStatus.Preparing) {
@@ -44,7 +54,7 @@ class Order constructor(
         }
         if (status == OrderStatus.Placed) {
             status = OrderStatus.Preparing
-            registerEvent(OrderPreparationStarted(id))
+            registerEvent(OrderPreparationStarted(id, status))
             return
         }
 
@@ -58,7 +68,7 @@ class Order constructor(
         }
         if (status == OrderStatus.Preparing) {
             status = OrderStatus.AwaitingPickup
-            registerEvent(OrderPreparationFinished(id))
+            registerEvent(OrderPreparationFinished(id, status))
             return
         }
 
@@ -67,7 +77,16 @@ class Order constructor(
 
     fun assignToCourier(courier: Courier) {
         this.courier = courier
-        registerEvent(OrderAssigned(id, courier.id))
+        val event = OrderAssigned(
+            orderId = id,
+            courierId = courier.id,
+            courierFullName = courier.fullName,
+            restaurantName = restaurant.name,
+            restaurantAddress = restaurant.address,
+            deliveryAddress = deliveryAddress,
+            status = status
+        )
+        registerEvent(event)
     }
 
     override fun toString(): String {
@@ -76,10 +95,14 @@ class Order constructor(
 
     fun confirmPickup() {
         status = OrderStatus.InDelivery
+
+        registerEvent(OrderPickedUp(id, status))
     }
 
     fun confirmDropoff() {
         status = OrderStatus.Delivered
+
+        registerEvent(OrderDelivered(id, status))
     }
 
     companion object {
@@ -98,7 +121,11 @@ class Order constructor(
             // Or like, whole Order object?
             val event = OrderPlaced(
                 orderId = order.id,
-                restaurantId = restaurant.id
+                restaurantId = restaurant.id,
+                restaurantName = restaurant.name,
+                deliveryAddress = order.deliveryAddress,
+                totalAmount = order.totalAmount.asDTO(),
+                status = order.status
             )
             order.registerEvent(event)
 
@@ -126,6 +153,7 @@ data class OrderItem(
     }
 }
 
+@Schema(enumAsRef = true) // TODO: Should use DTO type instead
 enum class OrderStatus {
     Placed,
     //    Paid,
@@ -135,10 +163,41 @@ enum class OrderStatus {
     Delivered, // Order was successfuly delivered to client
 }
 
-data class OrderPreparationStarted(val orderId: UUID) : DomainEvent
+data class OrderPreparationStarted(
+    val orderId: UUID,
+    val status: OrderStatus
+) : DomainEvent
 
-data class OrderPreparationFinished(val orderId: UUID) : DomainEvent
+data class OrderPreparationFinished(
+    val orderId: UUID,
+    val status: OrderStatus
+) : DomainEvent
 
-data class OrderPlaced(val orderId: UUID, val restaurantId: UUID) : DomainEvent
+data class OrderPlaced(
+    val orderId: UUID,
+    val restaurantId: UUID,
+    val restaurantName: String,
+    val totalAmount: JacksonConfiguration.MoneyView,
+    val deliveryAddress: Address,
+    val status: OrderStatus
+) : DomainEvent
 
-data class OrderAssigned(val orderId: UUID, val courierId: UUID) : DomainEvent
+data class OrderAssigned(
+    val orderId: UUID,
+    val courierId: UUID,
+    val courierFullName: String,
+    val restaurantName: String,
+    val restaurantAddress: Address,
+    val deliveryAddress: Address,
+    val status: OrderStatus
+) : DomainEvent
+
+data class OrderPickedUp(
+    val orderId: UUID,
+    val status: OrderStatus
+) : DomainEvent
+
+data class OrderDelivered(
+    val orderId: UUID,
+    val status: OrderStatus
+) : DomainEvent

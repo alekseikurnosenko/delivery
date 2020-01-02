@@ -1,6 +1,9 @@
 package com.delivery.demo.courier
 
+import com.delivery.demo.Aggregate
+import com.delivery.demo.DomainEvent
 import com.delivery.demo.order.Order
+import io.swagger.v3.oas.annotations.media.Schema
 import java.util.*
 import javax.persistence.*
 import kotlin.math.sqrt
@@ -37,7 +40,7 @@ data class Courier(
     @Embedded
     private var _location: LocationReport? = null,
     private var onShift: Boolean
-) {
+) : Aggregate() {
 
     val location: LocationReport?
         get() = _location
@@ -61,6 +64,7 @@ data class Courier(
 
     fun updateLocation(location: LocationReport) {
         this._location = location
+        registerEvent(CourierLocationUpdated(id, location.latLng))
     }
 
     override fun toString(): String {
@@ -75,10 +79,20 @@ data class Courier(
     }
 }
 
+@Schema(name = "Courier")
 data class CourierDTO(
-    val id: String
+    val id: String,
+    val fullName: String,
+    val location: LatLng?
 )
 
 fun Courier.asDTO() = CourierDTO(
-    id = id.toString()
+    id = id.toString(),
+    fullName = fullName,
+    location = location?.latLng
 )
+
+data class CourierLocationUpdated(
+    val courierId: UUID,
+    val location: LatLng
+) : DomainEvent

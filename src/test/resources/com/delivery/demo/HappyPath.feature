@@ -14,6 +14,7 @@ Feature: HappyPath
 
   Scenario: User orders a delivery
     Given A signed-in user
+    And user sets their address to be near "PointA"
     And user's basket is empty
 
     When user browses list of restaurants

@@ -1,5 +1,6 @@
 package com.delivery.demo.basket
 
+import com.delivery.demo.Address
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
 import org.joda.money.Money
@@ -13,6 +14,7 @@ data class Basket(
     @Id
     val id: UUID,
     val owner: String,
+    val deliveryAddress: Address,
     @ManyToOne
     @JoinColumn(name = "restaurant_id")
     val restaurant: Restaurant,

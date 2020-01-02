@@ -1,9 +1,9 @@
 package com.delivery.demo
 
 import com.delivery.demo.basket.BasketRepository
+import com.delivery.demo.courier.CourierLocationUpdated
 import com.delivery.demo.courier.CourierRepository
-import com.delivery.demo.order.OrderPreparationFinished
-import com.delivery.demo.order.OrderPreparationStarted
+import com.delivery.demo.order.*
 import com.delivery.demo.restaurant.RestaurantRepository
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
@@ -21,6 +21,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
+import org.springdoc.api.OpenApiCustomiser
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -104,6 +105,24 @@ class DemoApplication {
             )
     }
 
+    @Bean
+    fun customerGlobalHeaderOpenApiCustomiser(): OpenApiCustomiser = OpenApiCustomiser {
+        // Enrich generated API definition with event schemas
+        val events = listOf(
+            OrderPreparationStarted::class.java,
+            OrderPreparationFinished::class.java,
+            OrderPlaced::class.java,
+            OrderAssigned::class.java,
+            OrderPickedUp::class.java,
+            OrderDelivered::class.java,
+            CourierLocationUpdated::class.java
+        )
+        for (event in events) {
+            val schemas = ModelConverters.getInstance().read(event)
+            it.components.schemas.putAll(schemas)
+        }
+    }
+//
 //    @Bean
 //    fun requestDumperFilter(): FilterRegistrationBean<RequestDumperFilter> {
 //        val registration = FilterRegistrationBean<RequestDumperFilter>()
@@ -169,6 +188,11 @@ interface EventPublisher {
 
 interface EventSubscriber {
     fun <T : DomainEvent> subscribe(eventType: Class<T>, topic: String, handler: (T) -> Unit): Subscription
+    fun <T : DomainEvent> subscribeAll(
+        eventTypes: List<Class<out T>>,
+        topic: String,
+        handler: (T) -> Unit
+    ): Subscription
 }
 
 interface Subscription {
@@ -197,6 +221,21 @@ class AbstractTramEventTestConfiguration {
     fun eventSubscriber(objectMapper: ObjectMapper): EventSubscriber {
         val subscriberId = UUID.randomUUID().toString()
         return object : EventSubscriber {
+            override fun <T : DomainEvent> subscribeAll(
+                eventTypes: List<Class<out T>>,
+                topic: String,
+                handler: (T) -> Unit
+            ): Subscription {
+                val subscriptions = eventTypes.map { subscribe(it, topic, handler) }
+
+                return object : Subscription {
+                    override fun unsubscribe() {
+                        subscriptions.forEach { it.unsubscribe() }
+                    }
+
+                }
+            }
+
             override fun <T : DomainEvent> subscribe(
                 eventType: Class<T>,
                 topic: String,

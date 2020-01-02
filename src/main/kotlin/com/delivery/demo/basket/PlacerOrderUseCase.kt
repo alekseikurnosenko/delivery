@@ -1,6 +1,5 @@
 package com.delivery.demo.basket
 
-import com.delivery.demo.Address
 import com.delivery.demo.courier.CourierOrderRepository
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
@@ -17,7 +16,7 @@ class PlacerOrderUseCase(
     val courierOrderRepository: CourierOrderRepository
 ) {
 
-    fun place(basket: Basket, deliveryAddress: Address): Order {
+    fun place(basket: Basket): Order {
         val restaurant = basket.restaurant
         // Ensure it's still working
         if (!restaurant.isAcceptingOrders) {
@@ -43,7 +42,7 @@ class PlacerOrderUseCase(
         // Create order
         val order = Order.place(
             restaurant = basket.restaurant,
-            deliveryAddress = deliveryAddress,
+            deliveryAddress = basket.deliveryAddress,
             items = basket.items
         )
         // Not sure about this one

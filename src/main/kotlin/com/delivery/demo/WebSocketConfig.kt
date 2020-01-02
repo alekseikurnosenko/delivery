@@ -11,6 +11,6 @@ class WebSocketConfig(
     val socketHandler: SocketHandler
 ) : WebSocketConfigurer {
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(socketHandler, "/")
+        registry.addHandler(socketHandler, "/").setAllowedOrigins("*")
     }
 }

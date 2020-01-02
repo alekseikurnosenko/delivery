@@ -17,6 +17,11 @@ class OrderController(
     private val orderRepository: OrderRepository
 ) {
 
+    @GetMapping("")
+    fun orders(): List<OrderDTO> {
+        return orderRepository.findAll().map { it.asDTO() }
+    }
+
     @GetMapping("/{orderId}")
     fun order(
         @PathVariable("orderId", required = true) orderId: UUID

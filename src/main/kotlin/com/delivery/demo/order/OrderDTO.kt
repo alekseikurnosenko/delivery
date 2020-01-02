@@ -1,12 +1,22 @@
 package com.delivery.demo.order
 
+import com.delivery.demo.Address
+import com.delivery.demo.JacksonConfiguration
+import com.delivery.demo.courier.CourierDTO
+import com.delivery.demo.courier.asDTO
 import com.delivery.demo.restaurant.DishDTO
+import com.delivery.demo.restaurant.RestaurantDTO
 import com.delivery.demo.restaurant.asDTO
+import io.swagger.v3.oas.annotations.media.Schema
 
 fun Order.asDTO() = OrderDTO(
     id = id.toString(),
+    totalAmount = totalAmount.asDTO(),
+    deliveryAddress = deliveryAddress,
     status = status,
-    items = items.map { it.asDTO() }
+    items = items.map { it.asDTO() },
+    restaurant = restaurant.asDTO(),
+    courier = courier?.asDTO()
 )
 
 fun OrderItem.asDTO() = OrderItemDTO(
@@ -14,8 +24,13 @@ fun OrderItem.asDTO() = OrderItemDTO(
     quantity = quantity
 )
 
+@Schema(name = "Order")
 data class OrderDTO(
     val id: String,
+    val totalAmount: JacksonConfiguration.MoneyView,
+    val deliveryAddress: Address,
+    val restaurant: RestaurantDTO,
+    val courier: CourierDTO?,
     var status: OrderStatus,
     val items: List<OrderItemDTO>
 )

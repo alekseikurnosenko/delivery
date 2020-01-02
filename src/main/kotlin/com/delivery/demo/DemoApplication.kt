@@ -22,6 +22,7 @@ import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
 import org.springdoc.api.OpenApiCustomiser
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -106,22 +107,27 @@ class DemoApplication {
     }
 
     @Bean
-    fun customerGlobalHeaderOpenApiCustomiser(): OpenApiCustomiser = OpenApiCustomiser {
-        // Enrich generated API definition with event schemas
-        val events = listOf(
-            OrderPreparationStarted::class.java,
-            OrderPreparationFinished::class.java,
-            OrderPlaced::class.java,
-            OrderAssigned::class.java,
-            OrderPickedUp::class.java,
-            OrderDelivered::class.java,
-            CourierLocationUpdated::class.java
-        )
-        for (event in events) {
-            val schemas = ModelConverters.getInstance().read(event)
-            it.components.schemas.putAll(schemas)
+    @Qualifier("publishableEvents")
+    fun publishableEvents(): List<Class<out DomainEvent>> = listOf(
+        OrderPreparationStarted::class.java,
+        OrderPreparationFinished::class.java,
+        OrderPlaced::class.java,
+        OrderAssigned::class.java,
+        OrderPickedUp::class.java,
+        OrderDelivered::class.java,
+        CourierLocationUpdated::class.java
+    )
+
+    @Bean
+    fun customerGlobalHeaderOpenApiCustomiser(@Qualifier("publishableEvents") events: List<Class<out DomainEvent>>): OpenApiCustomiser =
+        OpenApiCustomiser {
+            // Enrich generated API definition with event schemas
+
+            for (event in events) {
+                val schemas = ModelConverters.getInstance().read(event)
+                it.components.schemas.putAll(schemas)
+            }
         }
-    }
 //
 //    @Bean
 //    fun requestDumperFilter(): FilterRegistrationBean<RequestDumperFilter> {
@@ -183,14 +189,14 @@ class DemoApplication {
 interface DomainEvent
 
 interface EventPublisher {
-    fun publish(topic: String, events: List<DomainEvent>)
+    fun publish(events: List<DomainEvent>, topic: String = "default")
 }
 
 interface EventSubscriber {
-    fun <T : DomainEvent> subscribe(eventType: Class<T>, topic: String, handler: (T) -> Unit): Subscription
+    fun <T : DomainEvent> subscribe(eventType: Class<T>, topic: String = "default", handler: (T) -> Unit): Subscription
     fun <T : DomainEvent> subscribeAll(
         eventTypes: List<Class<out T>>,
-        topic: String,
+        topic: String = "default",
         handler: (T) -> Unit
     ): Subscription
 }
@@ -208,7 +214,7 @@ class AbstractTramEventTestConfiguration {
     @Bean
     fun eventPublisher(objectMapper: ObjectMapper): EventPublisher {
         return object : EventPublisher {
-            override fun publish(topic: String, events: List<DomainEvent>) {
+            override fun publish(events: List<DomainEvent>, topic: String) {
                 events.forEach { event ->
                     val key = topic to event::class.java
                     subscribers.filter { it.first == key }.forEach { it.second(event) }
@@ -254,18 +260,6 @@ class AbstractTramEventTestConfiguration {
                 }
             }
         }
-    }
-
-    @Bean
-    fun consumer(eventSubscriber: EventSubscriber): List<Subscription> {
-        return listOf(
-            eventSubscriber.subscribe(OrderPreparationStarted::class.java, "Order") {
-                println(it)
-            },
-            eventSubscriber.subscribe(OrderPreparationFinished::class.java, "Order") {
-                println(it)
-            }
-        )
     }
 }
 

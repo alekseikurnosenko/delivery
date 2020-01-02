@@ -51,12 +51,14 @@ data class Courier(
 
     fun startShift() {
         onShift = true
+        registerEvent(CourierShiftStarted(id))
     }
 
     fun stopShift() {
         onShift = false
         // What to do with existing orders?
         // We can assume that couriers off-shift wouldn't get any more orders, but have to complete active ones
+        registerEvent(CourierShiftStopped(id))
     }
 
     fun assignOrder(order: Order): Order {
@@ -115,4 +117,12 @@ fun Courier.asDTO() = CourierDTO(
 data class CourierLocationUpdated(
     val courierId: UUID,
     val location: LatLng
+) : DomainEvent
+
+data class CourierShiftStarted(
+    val courierId: UUID
+) : DomainEvent
+
+data class CourierShiftStopped(
+    val courierId: UUID
 ) : DomainEvent

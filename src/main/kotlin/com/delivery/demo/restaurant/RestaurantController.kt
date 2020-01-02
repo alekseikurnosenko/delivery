@@ -109,7 +109,7 @@ class RestaurantController(
         }
         order.startPreparing()
 
-        eventPublisher.publish("Order", order.events)
+        eventPublisher.publish(order.events)
         return order.asDTO()
     }
 
@@ -125,7 +125,7 @@ class RestaurantController(
         }
         order.finishPreparing()
 
-        eventPublisher.publish("Order", order.events)
+        eventPublisher.publish(order.events)
         return order.asDTO()
     }
 }

@@ -54,7 +54,7 @@ class CourierController(
             .orElseThrow { Exception("Unknown courierId: $courierId") }
 
         val order = courier.confirmOrderPickup(orderId)
-        eventPublisher.publish("Order", order.events)
+        eventPublisher.publish(order.events)
 
         return order.asDTO()
     }
@@ -69,7 +69,7 @@ class CourierController(
             .orElseThrow { Exception("Unknown courierId: $courierId") }
 
         val order = courier.confirmOrderDropoff(orderId)
-        eventPublisher.publish("Order", order.events)
+        eventPublisher.publish(order.events)
 
         return order.asDTO()
     }
@@ -83,7 +83,7 @@ class CourierController(
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.updateLocation(LocationReport(input.latLng, Date()))
 
-        eventPublisher.publish("Courier", courier.events)
+        eventPublisher.publish(courier.events)
         return courier.asDTO()
     }
 

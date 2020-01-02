@@ -1,8 +1,7 @@
 package com.delivery.demo
 
-import com.delivery.demo.courier.CourierLocationUpdated
-import com.delivery.demo.order.*
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -15,29 +14,13 @@ data class WebSocketMessage(val type: String, val payload: String)
 @Component
 class SocketHandler(
     eventSubscriber: EventSubscriber,
-    val objectMapper: ObjectMapper
+    val objectMapper: ObjectMapper,
+    @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>
 ) : TextWebSocketHandler() {
 
     init {
         eventSubscriber.subscribeAll(
-            listOf(
-                CourierLocationUpdated::class.java
-            ),
-            "Courier"
-        ) { event ->
-            println("sending $event")
-            send(event)
-        }
-        eventSubscriber.subscribeAll(
-            listOf(
-                OrderAssigned::class.java,
-                OrderPlaced::class.java,
-                OrderPreparationStarted::class.java,
-                OrderPreparationFinished::class.java,
-                OrderPickedUp::class.java,
-                OrderDelivered::class.java
-            ),
-            "Order"
+            events
         ) { event ->
             println("sending $event")
             send(event)

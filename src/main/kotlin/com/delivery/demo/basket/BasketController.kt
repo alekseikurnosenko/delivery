@@ -102,7 +102,7 @@ class BasketController(
         // TODO: Address should be set at the very beginning before searching
         val order = placeOrderUseCase.place(basket)
 
-        eventPublisher.publish("Order", order.events)
+        eventPublisher.publish(order.events)
 
         return order.asDTO()
     }

@@ -3,6 +3,7 @@ package com.delivery.demo.basket
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderRepository
+import com.delivery.demo.order.OrderStatus
 import com.delivery.demo.restaurant.RestaurantOrderRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,13 +31,31 @@ class PlacerOrderUseCase(
         }
 
         // Find the closest courier to the resturant
+        // So, it should be the minimum of
+        // sum (time to finish current order + time to pickup new + time to drop )
         // TODO: does it make sense to allow couriers without location reported?
         val courier = couriers
             .filter { it.location != null }
-//            .sortedBy { it. }
-            // FIXME: need to filter only free couriers!
-            // Or at at-least distribute orders evenly
-            .minBy { it.location!!.latLng.distanceTo(restaurant.address.location) }
+            .minBy { courier ->
+                val remainingTime = courier.activeOrders.sumByDouble { order ->
+                    when (order.status) {
+                        OrderStatus.Placed,
+                        OrderStatus.Preparing,
+                        OrderStatus.AwaitingPickup -> {
+                            courier.location!!.latLng.distanceTo(restaurant.address.location) +
+                                    restaurant.address.location.distanceTo(order.deliveryAddress.location)
+                        }
+                        OrderStatus.InDelivery -> {
+                            courier.location!!.latLng.distanceTo(order.deliveryAddress.location)
+                        }
+                        OrderStatus.Delivered -> 0.0
+                    }
+                }
+                val newEta = courier.location!!.latLng.distanceTo(restaurant.address.location) +
+                        restaurant.address.location.distanceTo(basket.deliveryAddress.location)
+
+                remainingTime + newEta
+            }
             ?: throw Exception("No courier available")
 
         // TODO: Charge payment

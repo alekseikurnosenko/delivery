@@ -43,7 +43,7 @@ class Courier(
     onShift: Boolean
 ) : Aggregate() {
 
-    @OneToMany(cascade = [CascadeType.ALL])
+    @OneToMany(cascade = [CascadeType.MERGE])
     @JoinTable
     val activeOrders: MutableList<Order> = mutableListOf()
 

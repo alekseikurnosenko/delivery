@@ -33,18 +33,22 @@ data class LocationReport(
 
 @Entity
 @Table(name = "couriers")
-data class Courier(
+class Courier(
     @Id
     val id: UUID = UUID.randomUUID(),
     val fullName: String,
     @Embedded
     private var _location: LocationReport? = null,
-    private var onShift: Boolean
+    val userId: String,
+    onShift: Boolean
 ) : Aggregate() {
 
     @OneToMany(cascade = [CascadeType.ALL])
     @JoinTable
     val activeOrders: MutableList<Order> = mutableListOf()
+
+    var onShift: Boolean = onShift
+        protected set
 
     val location: LocationReport?
         get() = _location
@@ -72,13 +76,13 @@ data class Courier(
     }
 
     fun confirmOrderPickup(orderId: UUID): Order {
-        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order")
+        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order: $orderId")
         order.confirmPickup()
         return order
     }
 
     fun confirmOrderDropoff(orderId: UUID): Order {
-        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order")
+        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order: $orderId")
         order.confirmDropoff()
         activeOrders.remove(order)
         return order
@@ -94,10 +98,15 @@ data class Courier(
     }
 
     companion object {
-        fun new(fullName: String): Courier = Courier(
-            fullName = fullName,
-            onShift = false
-        )
+        fun new(userId: String, fullName: String): Courier {
+            val courier = Courier(
+                userId = userId,
+                fullName = fullName,
+                onShift = false
+            )
+            courier.registerEvent(CourierAdded(courier.id, courier.fullName, courier.onShift))
+            return courier
+        }
     }
 }
 
@@ -105,12 +114,14 @@ data class Courier(
 data class CourierDTO(
     val id: String,
     val fullName: String,
+    val onShift: Boolean,
     val location: LatLng?
 )
 
 fun Courier.asDTO() = CourierDTO(
     id = id.toString(),
     fullName = fullName,
+    onShift = onShift,
     location = location?.latLng
 )
 
@@ -125,4 +136,10 @@ data class CourierShiftStarted(
 
 data class CourierShiftStopped(
     val courierId: UUID
+) : DomainEvent
+
+data class CourierAdded(
+    val courierId: UUID,
+    val fullName: String,
+    val onShift: Boolean
 ) : DomainEvent

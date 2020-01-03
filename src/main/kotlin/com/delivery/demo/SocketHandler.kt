@@ -31,7 +31,10 @@ class SocketHandler(
         val type = message::class.java.name
         val payload = objectMapper.writeValueAsString(message)
         sessions.forEach { session ->
-            session.sendMessage(TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload))))
+            // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
+            synchronized(session) {
+                session.sendMessage(TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload))))
+            }
         }
     }
 

@@ -15,7 +15,8 @@ class Restaurant(
     val name: String,
     val minimumOrderAmount: Money? = null,
     @Embedded val address: Address,
-    val currency: CurrencyUnit
+    val currency: CurrencyUnit,
+    val userId: String
 ) {
 
     @OneToMany(mappedBy = "restaurant", cascade = [CascadeType.ALL])

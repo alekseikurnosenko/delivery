@@ -33,12 +33,11 @@ class BasketController(
 ) {
 
     @GetMapping("")
-    fun basket(): BasketDTO? {
+    fun basket(principal: Principal): BasketDTO? {
         // if we have user profile - it's easy
         // what if user is a guest?
-        val owner = userId()
 
-        return basketRepository.findByOwner(owner).map { it.asDTO() }.orElse(null)
+        return basketRepository.findByOwner(principal.name).map { it.asDTO() }.orElse(null)
     }
 
     @Transactional

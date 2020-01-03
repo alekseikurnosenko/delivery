@@ -1,5 +1,6 @@
 package com.delivery.demo.courier
 
+import com.auth0.spring.security.api.authentication.AuthenticationJsonWebToken
 import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
 import com.delivery.demo.order.OrderDTO
@@ -24,15 +25,25 @@ class CourierController(
 
     @PostMapping("")
     fun createCourier(
-        @RequestBody input: CreateCourierInput
+        @RequestBody input: CreateCourierInput,
+        token: AuthenticationJsonWebToken
     ): CourierDTO {
-        val courier = Courier.new(input.name)
+        val courier = Courier.new(
+            userId = token.name,
+            fullName = input.name
+        )
+        eventPublisher.publish(courier.events)
         return courierRepository.save(courier).asDTO()
     }
 
     @GetMapping("")
     fun couriers(): List<CourierDTO> {
         return courierRepository.findAll().map { it.asDTO() }
+    }
+
+    @GetMapping("/me")
+    fun ownCourier(token: AuthenticationJsonWebToken): CourierDTO? {
+        return courierRepository.findByUserId(token.name).map { it.asDTO() }.orElse(null)
     }
 
     @GetMapping("/{courierId}/orders")
@@ -74,7 +85,6 @@ class CourierController(
         return order.asDTO()
     }
 
-    @Transactional
     @PostMapping("/{courierId}/location")
     fun updateLocation(
         @PathVariable("courierId", required = true) courierId: UUID,
@@ -82,19 +92,18 @@ class CourierController(
     ): CourierDTO {
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.updateLocation(LocationReport(input.latLng, Date()))
-
         eventPublisher.publish(courier.events)
-        return courier.asDTO()
+        return courierRepository.save(courier).asDTO()
     }
 
-    @Transactional
     @PostMapping("/{courierId}/startShift")
     fun startShift(
         @PathVariable("courierId", required = true) courierId: UUID
     ): CourierDTO {
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.startShift()
-        return courier.asDTO()
+        eventPublisher.publish(courier.events)
+        return courierRepository.save(courier).asDTO()
     }
 
     @PostMapping("/{courierId}/stopShift")
@@ -103,7 +112,8 @@ class CourierController(
     ): CourierDTO {
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.stopShift()
-        return courier.asDTO()
+        eventPublisher.publish(courier.events)
+        return courierRepository.save(courier).asDTO()
     }
 
 }

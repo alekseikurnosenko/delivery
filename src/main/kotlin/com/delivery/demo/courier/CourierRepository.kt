@@ -5,4 +5,5 @@ import java.util.*
 
 interface CourierRepository : JpaRepository<Courier, UUID> {
     fun findByOnShift(onShift: Boolean): MutableList<Courier>
+    fun findByUserId(userId: String): Optional<Courier>
 }

@@ -19,7 +19,7 @@ class OrderController(
 
     @GetMapping("")
     fun orders(): List<OrderDTO> {
-        return orderRepository.findAll().map { it.asDTO() }
+        return orderRepository.findAllByOrderByCreatedDateDesc().map { it.asDTO() }
     }
 
     @GetMapping("/{orderId}")

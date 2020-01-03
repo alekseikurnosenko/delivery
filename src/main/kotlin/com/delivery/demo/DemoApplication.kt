@@ -1,8 +1,7 @@
 package com.delivery.demo
 
 import com.delivery.demo.basket.BasketRepository
-import com.delivery.demo.courier.CourierLocationUpdated
-import com.delivery.demo.courier.CourierRepository
+import com.delivery.demo.courier.*
 import com.delivery.demo.order.*
 import com.delivery.demo.restaurant.RestaurantRepository
 import com.fasterxml.jackson.core.JsonGenerator
@@ -30,6 +29,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.data.domain.AuditorAware
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.http.MediaType
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
@@ -89,8 +90,14 @@ fun main(args: Array<String>) {
 
 @SpringBootApplication(scanBasePackages = ["com.delivery"])
 @EnableJpaRepositories(basePackages = ["com.delivery"])
+@EnableJpaAuditing(auditorAwareRef = "auditorAware")
 @EntityScan(basePackages = ["com.delivery"])
 class DemoApplication {
+
+    @Bean("auditorAware")
+    fun auditorAware(): AuditorAware<Unit> = AuditorAware {
+        Optional.empty<Unit>()
+    }
 
     @Bean
     fun customOpenAPI(): OpenAPI {
@@ -115,7 +122,10 @@ class DemoApplication {
         OrderAssigned::class.java,
         OrderPickedUp::class.java,
         OrderDelivered::class.java,
-        CourierLocationUpdated::class.java
+        CourierLocationUpdated::class.java,
+        CourierShiftStarted::class.java,
+        CourierShiftStopped::class.java,
+        CourierAdded::class.java
     )
 
     @Bean
@@ -138,54 +148,6 @@ class DemoApplication {
 //        return registration
 //    }
 }
-//
-//@Configuration
-//@EnableSwagger2
-//class SwaggerConfig : ApplicationListener<ObjectMapperConfigured> {
-//
-//    override fun onApplicationEvent(event: ObjectMapperConfigured) {
-//        val moneyModule = SimpleModule()
-//        moneyModule.addSerializer(Money::class.java, JacksonConfiguration.MoneySerializer())
-//        moneyModule.addDeserializer(Money::class.java, JacksonConfiguration.MoneyDeserializer())
-//        event.objectMapper.registerModule(moneyModule)
-//        event.objectMapper.registerModule(KotlinModule())
-//    }
-//
-//    @Bean
-//    fun api(): Docket {
-//        return Docket(DocumentationType.SWAGGER_2)
-//            .select()
-//            .apis(RequestHandlerSelectors.basePackage("com.delivery.demo"))
-//            .paths(PathSelectors.any())
-//            .build()
-//            .directModelSubstitute(Money::class.java, JacksonConfiguration.MoneyView::class.java)
-//            .produces(setOf("application/json"))
-//            .consumes(setOf("application/json"))
-//            .securityContexts(listOf(securityContext()))
-//            .securitySchemes(listOf(apiKey()))
-//    }
-//
-//    private fun apiKey(): ApiKey {
-//        return ApiKey("JWT", "Authorization", "header")
-//    }
-//
-//    private fun securityContext(): SecurityContext {
-//        return SecurityContext.builder()
-//            .securityReferences(defaultAuth())
-//            .forPaths(PathSelectors.regex("/api/.*"))
-//            .build()
-//    }
-//
-//    fun defaultAuth(): List<SecurityReference> {
-//        val authorizationScope = AuthorizationScope("global", "accessEverything")
-//        val authorizationScopes = arrayOfNulls<AuthorizationScope>(1)
-//        authorizationScopes[0] = authorizationScope
-//        return listOf(
-//            SecurityReference("JWT", authorizationScopes)
-//        )
-//    }
-//}
-
 interface DomainEvent
 
 interface EventPublisher {

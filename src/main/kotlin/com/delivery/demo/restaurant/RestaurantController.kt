@@ -1,5 +1,6 @@
 package com.delivery.demo.restaurant
 
+import com.auth0.spring.security.api.authentication.AuthenticationJsonWebToken
 import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
 import com.delivery.demo.JacksonConfiguration
@@ -42,14 +43,23 @@ class RestaurantController(
 
     @Operation(summary = "Create new restaurant")
     @PostMapping("")
-    fun createRestaurant(@RequestBody @Valid input: CreateRestaurantInput): RestaurantDTO {
+    fun createRestaurant(
+        @RequestBody @Valid input: CreateRestaurantInput,
+        token: AuthenticationJsonWebToken
+    ): RestaurantDTO {
         val restaurant = Restaurant(
             id = UUID.randomUUID(),
             name = input.name,
             address = input.address,
-            currency = CurrencyUnit.of(input.currency)
+            currency = CurrencyUnit.of(input.currency),
+            userId = token.name
         )
         return restaurantRepository.save(restaurant).asDTO()
+    }
+
+    @GetMapping("/me")
+    fun ownRestaurant(token: AuthenticationJsonWebToken): RestaurantDTO? {
+        return restaurantRepository.findByUserId(token.name).map { it.asDTO() }.orElse(null)
     }
 
     @Operation(summary = "Get restaurant info")

@@ -97,7 +97,7 @@ class HappyPathSteps : En {
                     val event = objectMapper.readValue(socketMessage.payload, Class.forName(socketMessage.type))
                     world.events.add(event)
                 }
-            }, WebSocketHttpHeaders(), URI.create("ws://$endpoint:$serverPort/")).get()
+            }, WebSocketHttpHeaders(), URI.create("ws://$endpoint:$serverPort/ws")).get()
 
             session.sendMessage(TextMessage("Hey"))
         }

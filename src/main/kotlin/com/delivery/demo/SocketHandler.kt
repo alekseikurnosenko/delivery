@@ -32,7 +32,11 @@ class SocketHandler(
         sessions.forEach { session ->
             // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
             synchronized(session) {
-                session.sendMessage(PingMessage())
+                try {
+                    session.sendMessage(PingMessage())
+                } catch (e: Exception) {
+                    // Ignore
+                }
             }
         }
     }
@@ -43,7 +47,11 @@ class SocketHandler(
         sessions.forEach { session ->
             // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
             synchronized(session) {
-                session.sendMessage(TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload))))
+                try {
+                    session.sendMessage(TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload))))
+                } catch (e: Exception) {
+                    // Ignore
+                }
             }
         }
     }

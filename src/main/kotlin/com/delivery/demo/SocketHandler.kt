@@ -27,9 +27,8 @@ class SocketHandler(
 
     }
 
-    @Scheduled(fixedRate = 5 * 1000)
+    @Scheduled(fixedRate = 25 * 1000)
     fun sendHeartbeat() {
-        println("Sending PING")
         sessions.forEach { session ->
             // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
             synchronized(session) {
@@ -65,7 +64,5 @@ class SocketHandler(
 
     override fun handlePongMessage(session: WebSocketSession, message: PongMessage) {
         super.handlePongMessage(session, message)
-        println("Got pong from $session")
-
     }
 }

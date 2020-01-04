@@ -33,17 +33,17 @@ class CourierController(
             fullName = input.name
         )
         eventPublisher.publish(courier.events)
-        return courierRepository.save(courier).asDTO()
+        return courierRepository.save(courier).asDTO(withOrders = true)
     }
 
     @GetMapping("")
     fun couriers(): List<CourierDTO> {
-        return courierRepository.findAll().map { it.asDTO() }
+        return courierRepository.findAll().map { it.asDTO(withOrders = true) }
     }
 
     @GetMapping("/me")
     fun ownCourier(token: AuthenticationJsonWebToken): CourierDTO? {
-        return courierRepository.findByUserId(token.name).map { it.asDTO() }.orElse(null)
+        return courierRepository.findByUserId(token.name).map { it.asDTO(withOrders = true) }.orElse(null)
     }
 
     @GetMapping("/{courierId}/orders")
@@ -93,7 +93,7 @@ class CourierController(
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.updateLocation(LocationReport(input.latLng, Date()))
         eventPublisher.publish(courier.events)
-        return courierRepository.save(courier).asDTO()
+        return courierRepository.save(courier).asDTO(withOrders = true)
     }
 
     @PostMapping("/{courierId}/startShift")
@@ -103,7 +103,7 @@ class CourierController(
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.startShift()
         eventPublisher.publish(courier.events)
-        return courierRepository.save(courier).asDTO()
+        return courierRepository.save(courier).asDTO(withOrders = true)
     }
 
     @PostMapping("/{courierId}/stopShift")
@@ -113,7 +113,7 @@ class CourierController(
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
         courier.stopShift()
         eventPublisher.publish(courier.events)
-        return courierRepository.save(courier).asDTO()
+        return courierRepository.save(courier).asDTO(withOrders = true)
     }
 
 }
@@ -126,7 +126,7 @@ data class UpdateLocationInput(
     val latLng: LatLng
 )
 
-//fun CourierOrder.asDTO() = CourierOrderDTO(
+//fun CourierOrder.asDTO(withOrders = true) = CourierOrderDTO(
 //    orderId = order.id.toString(),
 //    restaurantName = order.restaurant.name,
 //    pickupAddress = order.restaurant.address,

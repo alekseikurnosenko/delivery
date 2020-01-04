@@ -42,6 +42,7 @@ import org.springframework.web.servlet.config.annotation.ContentNegotiationConfi
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.LinkedBlockingQueue
 
 
 @Component
@@ -176,19 +177,35 @@ interface Subscription {
     fun unsubscribe()
 }
 
+
 @Configuration
 class AbstractTramEventTestConfiguration {
 
+    data class Envelope(
+        val topic: String,
+        val events: DomainEvent
+    )
+
+    private val eventsQueue = LinkedBlockingQueue<Envelope>()
     private val subscribers = ConcurrentLinkedDeque<Pair<Pair<String, Class<out DomainEvent>>, (DomainEvent) -> Unit>>()
     private val EVENT_TYPE_HEADER = "event_type"
+
+    init {
+        Thread {
+            while (true) {
+                val (topic, event) = eventsQueue.take()
+                val key = topic to event::class.java
+                subscribers.filter { it.first == key }.forEach { it.second(event) }
+            }
+        }.start()
+    }
 
     @Bean
     fun eventPublisher(objectMapper: ObjectMapper): EventPublisher {
         return object : EventPublisher {
             override fun publish(events: List<DomainEvent>, topic: String) {
-                events.forEach { event ->
-                    val key = topic to event::class.java
-                    subscribers.filter { it.first == key }.forEach { it.second(event) }
+                events.forEach {
+                    eventsQueue.offer(Envelope(topic, it))
                 }
             }
         }

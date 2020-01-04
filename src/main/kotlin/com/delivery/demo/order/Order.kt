@@ -37,6 +37,7 @@ class Order constructor(
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
     val items: List<OrderItem> = items.map { OrderItem(dish = it.dish, quantity = it.quantity, order = this) }
 
+    @Enumerated(EnumType.STRING)
     var status: OrderStatus = OrderStatus.Placed
         protected set
 

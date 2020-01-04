@@ -52,7 +52,8 @@ class PlacerOrderUseCase(
                 val newEta = courier.location!!.latLng.distanceTo(restaurant.address.location) +
                         restaurant.address.location.distanceTo(basket.deliveryAddress.location)
 
-                remainingTime + newEta
+                // Use a coefficient to penalize pending orders
+                remainingTime * 1.2 + newEta
             }
             ?: throw Exception("No courier available")
 

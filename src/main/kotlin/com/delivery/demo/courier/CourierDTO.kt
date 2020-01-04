@@ -1,5 +1,6 @@
 package com.delivery.demo.courier
 
+import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.media.Schema
@@ -18,5 +19,5 @@ fun Courier.asDTO(withOrders: Boolean = false) = CourierDTO(
     fullName = fullName,
     onShift = onShift,
     location = location?.latLng,
-    activeOrders = if (withOrders) activeOrders.map { it.asDTO() } else null
+    activeOrders = if (withOrders) activeOrders.map<Order, OrderDTO> { it.asDTO() } else null
 )

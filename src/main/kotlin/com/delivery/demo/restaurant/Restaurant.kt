@@ -2,6 +2,7 @@ package com.delivery.demo.restaurant
 
 import com.delivery.demo.Address
 import com.delivery.demo.basket.Basket
+import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.order.Order
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
@@ -46,14 +47,15 @@ class Restaurant(
         )
     }
 
-    fun placeOrder(order: Order): RestaurantOrder {
+    fun placeOrder(
+        deliveryAddress: Address,
+        items: List<BasketItem>
+    ): Order {
         if (!isAcceptingOrders) {
             throw Exception("Cannot place order since the restaurant is not accepting any")
         }
-        return RestaurantOrder(
-            restaurantId = id,
-            order = order
-        )
+
+        return Order.place(this, deliveryAddress, items)
     }
 
 }

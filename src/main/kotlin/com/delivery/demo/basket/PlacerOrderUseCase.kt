@@ -4,7 +4,6 @@ import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.order.OrderStatus
-import com.delivery.demo.restaurant.RestaurantOrderRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -13,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional
 class PlacerOrderUseCase(
     val basketRepository: BasketRepository,
     val courierRepository: CourierRepository,
-    val restaurantOrderRepository: RestaurantOrderRepository,
     val orderRepository: OrderRepository
 ) {
 
@@ -61,8 +59,7 @@ class PlacerOrderUseCase(
         // TODO: Charge payment
 
         // Create order
-        val order = Order.place(
-            restaurant = basket.restaurant,
+        val order = restaurant.placeOrder(
             deliveryAddress = basket.deliveryAddress,
             items = basket.items
         )
@@ -80,14 +77,6 @@ class PlacerOrderUseCase(
         // And I still don't like that it happens in two steps
         courierRepository.save(courier)
 
-
-
-        // Notify restaurant
-        // Should probably be outside of this use-case completely
-        // As it's not really part of the same transaction
-        // 🤔 who is responsible for posting an event?
-        val restaurantOrder = restaurant.placeOrder(order)
-        restaurantOrderRepository.save(restaurantOrder)
 
         // Clear the basket
         basketRepository.delete(basket)

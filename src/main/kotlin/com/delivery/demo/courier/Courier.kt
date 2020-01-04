@@ -34,8 +34,6 @@ data class LocationReport(
 @Entity
 @Table(name = "couriers")
 class Courier(
-    @Id
-    val id: UUID = UUID.randomUUID(),
     val fullName: String,
     @Embedded
     private var _location: LocationReport? = null,
@@ -91,10 +89,6 @@ class Courier(
     fun updateLocation(location: LocationReport) {
         this._location = location
         registerEvent(CourierLocationUpdated(id, location.latLng))
-    }
-
-    override fun toString(): String {
-        return "${Courier::class.java.simpleName}$id"
     }
 
     companion object {

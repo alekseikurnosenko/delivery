@@ -18,8 +18,6 @@ import javax.persistence.*
 @Entity
 @Table(name = "orders")
 class Order constructor(
-    @Id
-    val id: UUID = UUID.randomUUID(),
     restaurant: Restaurant,
     deliveryAddress: Address,
     items: List<BasketItem> // Can be an interface?
@@ -87,10 +85,6 @@ class Order constructor(
             status = status
         )
         registerEvent(event)
-    }
-
-    override fun toString(): String {
-        return "${Order::class.java.simpleName}$id"
     }
 
     fun confirmPickup() {

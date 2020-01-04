@@ -5,6 +5,7 @@ import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
 import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.order.OrderDTO
+import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.order.OrderStatus
 import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.Operation
@@ -31,7 +32,7 @@ import javax.validation.Valid
 @Tag(name = "restaurants", description = "Manage restaurants")
 class RestaurantController(
     private val restaurantRepository: RestaurantRepository,
-    private val restaurantOrderRepository: RestaurantOrderRepository,
+    private val orderRepository: OrderRepository,
     private val eventPublisher: EventPublisher
 ) {
 
@@ -99,11 +100,11 @@ class RestaurantController(
     fun orders(
         @PathVariable("restaurantId", required = true) restaurantId: UUID,
         @RequestParam(required = false) status: OrderStatus?
-    ): List<RestaurantOrderDTO> {
+    ): List<OrderDTO> {
         return if (status != null) {
-            restaurantOrderRepository.findByRestaurantIdAndOrderStatus(restaurantId, status).map { it.asDTO() }
+            orderRepository.findByStatusAndRestaurantId(status, restaurantId).map { it.asDTO() }
         } else {
-            restaurantOrderRepository.findByRestaurantId(restaurantId).map { it.asDTO() }
+            orderRepository.findByRestaurantId(restaurantId).map { it.asDTO() }
         }
     }
 
@@ -113,9 +114,12 @@ class RestaurantController(
         @PathVariable("restaurantId", required = true) restaurantId: UUID,
         @PathVariable("orderId", required = true) orderId: UUID,
         @RequestParam(required = false) status: OrderStatus?
-    ): RestaurantOrderDTO {
-        val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
-            ResourceNotFoundException("Restaurant(id=$restaurantId) or Order(id=$orderId) not found")
+    ): OrderDTO {
+        val order = orderRepository.findById(orderId).orElseThrow {
+            ResourceNotFoundException("Order(id=$orderId) not found")
+        }
+        if (order.restaurant.id != restaurantId) {
+            throw Exception("Order(id=$orderId) doesn't belong to the restaurant")
         }
         order.startPreparing()
 
@@ -129,9 +133,12 @@ class RestaurantController(
         @PathVariable("restaurantId", required = true) restaurantId: UUID,
         @PathVariable("orderId", required = true) orderId: UUID,
         @RequestParam(required = false) status: OrderStatus?
-    ): RestaurantOrderDTO {
-        val order = restaurantOrderRepository.findByRestaurantIdAndOrderId(restaurantId, orderId).orElseThrow {
-            ResourceNotFoundException("Restaurant(id=$restaurantId) or Order(id=$orderId) not found")
+    ): OrderDTO {
+        val order = orderRepository.findById(orderId).orElseThrow {
+            ResourceNotFoundException("Order(id=$orderId) not found")
+        }
+        if (order.restaurant.id != restaurantId) {
+            throw Exception("Order(id=$orderId) doesn't belong to the restaurant")
         }
         order.finishPreparing()
 
@@ -187,12 +194,4 @@ data class DishDTO(
     val id: String,
     val name: String,
     val price: JacksonConfiguration.MoneyView
-)
-
-data class RestaurantOrderDTO(
-    val order: OrderDTO
-)
-
-fun RestaurantOrder.asDTO() = RestaurantOrderDTO(
-    order = order.asDTO()
 )

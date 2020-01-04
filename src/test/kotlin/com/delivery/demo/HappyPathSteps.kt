@@ -11,7 +11,10 @@ import com.delivery.demo.order.OrderPreparationFinished
 import com.delivery.demo.order.OrderPreparationStarted
 import com.delivery.demo.order.OrderStatus
 import com.delivery.demo.profile.Profile
-import com.delivery.demo.restaurant.*
+import com.delivery.demo.restaurant.CreateDishInput
+import com.delivery.demo.restaurant.CreateRestaurantInput
+import com.delivery.demo.restaurant.DishDTO
+import com.delivery.demo.restaurant.RestaurantDTO
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.datatable.DataTable
 import io.cucumber.java8.En
@@ -178,18 +181,18 @@ class HappyPathSteps : En {
         }
         Then("^\"(.+)\" receives this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
-            val orders = restTemplate.getForObject<Array<RestaurantOrderDTO>>(api("/restaurants/$restaurantId/orders"))
-            assertThat(orders.map { it.order.id }).contains(world.order.id)
+            val orders = restTemplate.getForObject<Array<OrderDTO>>(api("/restaurants/$restaurantId/orders"))
+            assertThat(orders.map { it.id }).contains(world.order.id)
         }
         When("^\"(.+)\" starts to prepare this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
             val orderId = world.order.id
-            restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/startPreparing"))
+            restTemplate.postForObject<OrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/startPreparing"))
         }
         When("^\"(.+)\" finishes preparing this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
             val orderId = world.order.id
-            restTemplate.postForObject<RestaurantOrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/finishPreparing"))
+            restTemplate.postForObject<OrderDTO>(api("/restaurants/$restaurantId/orders/$orderId/finishPreparing"))
         }
         Then("^\"(.+)\" is notified that order preparation started") { courierName: String ->
             retry {

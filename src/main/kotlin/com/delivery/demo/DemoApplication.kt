@@ -34,6 +34,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.http.MediaType
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
+import org.springframework.scheduling.TaskScheduler
+import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
@@ -92,11 +95,17 @@ fun main(args: Array<String>) {
 @EnableJpaRepositories(basePackages = ["com.delivery"])
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 @EntityScan(basePackages = ["com.delivery"])
+@EnableScheduling
 class DemoApplication {
 
     @Bean("auditorAware")
     fun auditorAware(): AuditorAware<Unit> = AuditorAware {
         Optional.empty<Unit>()
+    }
+
+    @Bean
+    fun taskScheduler(): TaskScheduler {
+        return ConcurrentTaskScheduler()
     }
 
     @Bean

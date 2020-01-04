@@ -2,8 +2,10 @@ package com.delivery.demo
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
+import org.springframework.web.socket.PingMessage
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
@@ -24,6 +26,17 @@ class SocketHandler(
         ) { event ->
             println("sending $event")
             send(event)
+        }
+
+    }
+
+    @Scheduled(fixedRate = 20 * 1000)
+    fun sendHeartbeat() {
+        sessions.forEach { session ->
+            // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
+            synchronized(session) {
+                session.sendMessage(PingMessage())
+            }
         }
     }
 

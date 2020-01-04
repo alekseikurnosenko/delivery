@@ -1,6 +1,7 @@
 package com.delivery.demo
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.hibernate.annotations.common.util.impl.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -16,6 +17,8 @@ class SocketHandler(
     val objectMapper: ObjectMapper,
     @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>
 ) : TextWebSocketHandler() {
+
+    private val logger = LoggerFactory.logger(SocketHandler::class.java)
 
     init {
         eventSubscriber.subscribeAll(
@@ -35,7 +38,7 @@ class SocketHandler(
                 try {
                     session.sendMessage(PingMessage())
                 } catch (e: Exception) {
-                    // Ignore
+                    logger.error("Failed to send ping", e)
                 }
             }
         }
@@ -50,7 +53,7 @@ class SocketHandler(
                 try {
                     session.sendMessage(TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload))))
                 } catch (e: Exception) {
-                    // Ignore
+                    logger.error("Failed to send message", e)
                 }
             }
         }

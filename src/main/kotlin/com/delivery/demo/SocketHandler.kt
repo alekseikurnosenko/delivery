@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.springframework.web.socket.CloseStatus
-import org.springframework.web.socket.PingMessage
-import org.springframework.web.socket.TextMessage
-import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -30,8 +27,9 @@ class SocketHandler(
 
     }
 
-    @Scheduled(fixedRate = 20 * 1000)
+    @Scheduled(fixedRate = 5 * 1000)
     fun sendHeartbeat() {
+        println("Sending PING")
         sessions.forEach { session ->
             // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
             synchronized(session) {
@@ -63,5 +61,11 @@ class SocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         println("Message from $session: $message")
+    }
+
+    override fun handlePongMessage(session: WebSocketSession, message: PongMessage) {
+        super.handlePongMessage(session, message)
+        println("Got pong from $session")
+
     }
 }

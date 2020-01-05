@@ -1,5 +1,6 @@
 package com.delivery.demo
 
+import com.delivery.demo.courier.CourierLocationUpdated
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.hibernate.annotations.common.util.impl.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
@@ -24,7 +25,9 @@ class SocketHandler(
         eventSubscriber.subscribeAll(
             events
         ) { event ->
-            println("sending $event")
+            if (event::class != CourierLocationUpdated::class) {
+                println("sending $event")
+            }
             send(event)
         }
 

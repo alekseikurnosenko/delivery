@@ -20,5 +20,11 @@ logging:
   level:
     com:
       auth0: WARN
-
-
+#    org:
+#      hibernate:
+#        SQL: DEBUG
+#        type:
+#          descriptor:
+#            sql: TRACE
+#  file:
+#    path: log

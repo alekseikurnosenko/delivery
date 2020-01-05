@@ -40,9 +40,9 @@ class Courier(
     onShift: Boolean
 ) : Aggregate() {
 
-    @OneToMany(cascade = [CascadeType.MERGE])
+    @OneToMany(cascade = [CascadeType.ALL])
     @JoinTable
-    val activeOrders: MutableList<Order> = mutableListOf()
+    val activeOrders: MutableSet<Order> = mutableSetOf()
 
     var onShift: Boolean = onShift
         protected set
@@ -66,7 +66,6 @@ class Courier(
         if (!onShift) {
             throw Exception("Cannot assign orders to couriers off-shift")
         }
-//        val order = CourierOrder(order.id, this, order)
         order.assignToCourier(this)
         activeOrders.add(order)
         return order

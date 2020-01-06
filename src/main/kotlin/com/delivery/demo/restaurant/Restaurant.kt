@@ -1,6 +1,8 @@
 package com.delivery.demo.restaurant
 
 import com.delivery.demo.Address
+import com.delivery.demo.Aggregate
+import com.delivery.demo.DomainEvent
 import com.delivery.demo.basket.Basket
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.order.Order
@@ -11,14 +13,13 @@ import javax.persistence.*
 
 @Entity
 @Table(name = "restaurants")
-class Restaurant(
-    @Id val id: UUID,
+class Restaurant private constructor(
     val name: String,
-    val minimumOrderAmount: Money? = null,
     @Embedded val address: Address,
+    val minimumOrderAmount: Money? = null,
     val currency: CurrencyUnit,
-    val userId: String
-) {
+    val accountId: String
+) : Aggregate() {
 
     @OneToMany(mappedBy = "restaurant", cascade = [CascadeType.ALL])
     var dishes: MutableList<Dish> = mutableListOf()
@@ -48,6 +49,7 @@ class Restaurant(
     }
 
     fun placeOrder(
+        userId: String,
         deliveryAddress: Address,
         items: List<BasketItem>
     ): Order {
@@ -55,7 +57,34 @@ class Restaurant(
             throw Exception("Cannot place order since the restaurant is not accepting any")
         }
 
-        return Order.place(this, deliveryAddress, items)
+        return Order.place(
+            userId = userId,
+            restaurant = this,
+            deliveryAddress = deliveryAddress,
+            items = items
+        )
+    }
+
+    companion object {
+        fun new(
+            accountId: String,
+            name: String,
+            address: Address,
+            currency: CurrencyUnit,
+            minimumOrderAmount: Money?
+        ): Restaurant {
+            val restaurant = Restaurant(
+                accountId = accountId,
+                name = name,
+                address = address,
+                currency = currency,
+                minimumOrderAmount = minimumOrderAmount
+            )
+
+            restaurant.registerEvent(RestaurantAdded(accountId, restaurant.id))
+
+            return restaurant
+        }
     }
 
 }
@@ -71,3 +100,8 @@ class Dish(
     @JoinColumn(name = "restaurant_id")
     val restaurant: Restaurant
 )
+
+data class RestaurantAdded(
+    val accountId: String,
+    val restaurantId: UUID
+) : DomainEvent

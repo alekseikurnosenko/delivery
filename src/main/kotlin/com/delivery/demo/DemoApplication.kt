@@ -3,6 +3,7 @@ package com.delivery.demo
 import com.delivery.demo.basket.BasketRepository
 import com.delivery.demo.courier.*
 import com.delivery.demo.order.*
+import com.delivery.demo.restaurant.RestaurantAdded
 import com.delivery.demo.restaurant.RestaurantRepository
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
@@ -126,6 +127,7 @@ class DemoApplication {
     @Bean
     @Qualifier("publishableEvents")
     fun publishableEvents(): List<Class<out DomainEvent>> = listOf(
+        RestaurantAdded::class.java,
         OrderPreparationStarted::class.java,
         OrderPreparationFinished::class.java,
         OrderPlaced::class.java,

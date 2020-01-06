@@ -95,13 +95,20 @@ class Courier(
     }
 
     companion object {
-        fun new(userId: String, fullName: String): Courier {
+        fun new(accountId: String, fullName: String): Courier {
             val courier = Courier(
-                userId = userId,
+                userId = accountId,
                 fullName = fullName,
                 onShift = false
             )
-            courier.registerEvent(CourierAdded(courier.id, courier.fullName, courier.onShift))
+            courier.registerEvent(
+                CourierAdded(
+                    accountId = accountId,
+                    courierId = courier.id,
+                    fullName = courier.fullName,
+                    onShift = courier.onShift
+                )
+            )
             return courier
         }
     }
@@ -121,6 +128,7 @@ data class CourierShiftStopped(
 ) : DomainEvent
 
 data class CourierAdded(
+    val accountId: String,
     val courierId: UUID,
     val fullName: String,
     val onShift: Boolean

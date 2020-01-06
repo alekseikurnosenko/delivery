@@ -4,5 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.*
 
 interface RestaurantRepository : JpaRepository<Restaurant, UUID> {
-    fun findByUserId(userId: String): Optional<Restaurant>
+    fun findByAccountId(userId: String): Optional<Restaurant>
 }

@@ -80,6 +80,7 @@ class Order constructor(
             orderId = id,
             courierId = courier.id,
             courierFullName = courier.fullName,
+            restaurantId = restaurant.id,
             restaurantName = restaurant.name,
             restaurantAddress = restaurant.address,
             deliveryAddress = deliveryAddress,
@@ -102,6 +103,7 @@ class Order constructor(
 
     companion object {
         fun place(
+            userId: String,
             restaurant: Restaurant,
             deliveryAddress: Address,
             items: List<BasketItem>
@@ -115,6 +117,7 @@ class Order constructor(
             // Do we also need to include all items here?
             // Or like, whole Order object?
             val event = OrderPlaced(
+                userId = userId,
                 orderId = order.id,
                 restaurantId = restaurant.id,
                 restaurantName = restaurant.name,
@@ -169,6 +172,7 @@ data class OrderPreparationFinished(
 ) : DomainEvent
 
 data class OrderPlaced(
+    val userId: String,
     val orderId: UUID,
     val restaurantId: UUID,
     val restaurantName: String,
@@ -181,6 +185,7 @@ data class OrderAssigned(
     val orderId: UUID,
     val courierId: UUID,
     val courierFullName: String,
+    val restaurantId: UUID,
     val restaurantName: String,
     val restaurantAddress: Address,
     val deliveryAddress: Address,

@@ -61,6 +61,7 @@ class PlacerOrderUseCase(
 
         // Create order
         val order = restaurant.placeOrder(
+            userId = basket.owner,
             deliveryAddress = basket.deliveryAddress,
             items = basket.items
         )

@@ -29,7 +29,7 @@ class CourierController(
         token: AuthenticationJsonWebToken
     ): CourierDTO {
         val courier = Courier.new(
-            userId = token.name,
+            accountId = token.name,
             fullName = input.name
         )
         eventPublisher.publish(courier.events)

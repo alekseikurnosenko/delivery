@@ -48,19 +48,21 @@ class RestaurantController(
         @RequestBody @Valid input: CreateRestaurantInput,
         token: AuthenticationJsonWebToken
     ): RestaurantDTO {
-        val restaurant = Restaurant(
-            id = UUID.randomUUID(),
+        val restaurant = Restaurant.new(
+            accountId = token.name,
             name = input.name,
             address = input.address,
             currency = CurrencyUnit.of(input.currency),
-            userId = token.name
+            minimumOrderAmount = null
         )
+
+        eventPublisher.publish(restaurant.events)
         return restaurantRepository.save(restaurant).asDTO()
     }
 
     @GetMapping("/me")
     fun ownRestaurant(token: AuthenticationJsonWebToken): RestaurantDTO? {
-        return restaurantRepository.findByUserId(token.name).map { it.asDTO() }.orElse(null)
+        return restaurantRepository.findByAccountId(token.name).map { it.asDTO() }.orElse(null)
     }
 
     @Operation(summary = "Get restaurant info")

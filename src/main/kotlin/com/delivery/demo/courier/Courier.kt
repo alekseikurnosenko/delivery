@@ -34,21 +34,16 @@ data class LocationReport(
 @Table(name = "couriers")
 class Courier(
     val fullName: String,
-    @Embedded
-    private var _location: LocationReport? = null,
     val userId: String,
     onShift: Boolean
 ) : Aggregate() {
 
-    @OneToMany(cascade = [CascadeType.ALL])
+    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinTable
     val activeOrders: MutableSet<Order> = mutableSetOf()
 
     var onShift: Boolean = onShift
         protected set
-
-    val location: LocationReport?
-        get() = _location
 
     fun startShift() {
         onShift = true
@@ -82,16 +77,6 @@ class Courier(
         order.confirmDropoff()
         activeOrders.remove(order)
         return order
-    }
-
-    fun updateLocation(location: LocationReport) {
-        val currentLocation = _location
-        // Don't record outdated events (if any)
-        if (currentLocation != null && currentLocation.timestamp > location.timestamp) {
-            return
-        }
-        this._location = location
-        registerEvent(CourierLocationUpdated(id, location.latLng))
     }
 
     companion object {

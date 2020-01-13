@@ -14,12 +14,12 @@ data class CourierDTO(
     val activeOrders: List<OrderDTO>?
 )
 
-fun Courier.asDTO(withOrders: Boolean = false): CourierDTO {
+fun Courier.asDTO(withOrders: Boolean = false, location: LatLng? = null): CourierDTO {
     return CourierDTO(
         id = id.toString(),
         fullName = fullName,
         onShift = onShift,
-        location = location?.latLng,
+        location = location,
         activeOrders = if (withOrders) activeOrders.map<Order, OrderDTO> { it.asDTO() } else null
     )
 }

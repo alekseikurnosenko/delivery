@@ -1,0 +1,3 @@
+12.01
+  Observed a bottleneck in number of available connection to the DB.
+  Mostly due to location updates.

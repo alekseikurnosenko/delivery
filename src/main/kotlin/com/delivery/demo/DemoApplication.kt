@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.MeterRegistry
 import io.swagger.v3.core.converter.AnnotatedType
 import io.swagger.v3.core.converter.ModelConverter
 import io.swagger.v3.core.converter.ModelConverterContext
@@ -160,6 +162,7 @@ class DemoApplication {
 //        return registration
 //    }
 }
+
 interface DomainEvent
 
 interface EventPublisher {
@@ -181,7 +184,9 @@ interface Subscription {
 
 
 @Configuration
-class AbstractTramEventTestConfiguration {
+class AbstractTramEventTestConfiguration(
+    private val meterRegistry: MeterRegistry
+) {
 
     data class Envelope(
         val topic: String,
@@ -193,6 +198,9 @@ class AbstractTramEventTestConfiguration {
     private val EVENT_TYPE_HEADER = "event_type"
 
     init {
+        Gauge.builder("events.queue.length") { eventsQueue.size }
+            .register(meterRegistry)
+
         Thread {
             while (true) {
                 val (topic, event) = eventsQueue.take()

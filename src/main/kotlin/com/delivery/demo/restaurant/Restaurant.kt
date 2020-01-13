@@ -41,7 +41,6 @@ class Restaurant private constructor(
 
     fun newBasket(owner: String, deliveryAddress: Address): Basket {
         return Basket(
-            id = UUID.randomUUID(),
             owner = owner,
             deliveryAddress = deliveryAddress,
             restaurant = this

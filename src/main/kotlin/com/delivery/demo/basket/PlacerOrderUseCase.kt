@@ -1,5 +1,6 @@
 package com.delivery.demo.basket
 
+import com.delivery.demo.courier.CourierLocationRepository
 import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.order.Order
 import com.delivery.demo.order.OrderRepository
@@ -12,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 class PlacerOrderUseCase(
     val basketRepository: BasketRepository,
     val courierRepository: CourierRepository,
-    val orderRepository: OrderRepository
+    val orderRepository: OrderRepository,
+    val courierLocationRepository: CourierLocationRepository
 ) {
 
     fun place(basket: Basket): Order {
@@ -31,25 +33,35 @@ class PlacerOrderUseCase(
         // Find the closest courier to the resturant
         // So, it should be the minimum of
         // sum (time to finish current order + time to pickup new + time to drop )
-        // TODO: does it make sense to allow couriers without location reported?
-        val courier = couriers
-            .filter { it.location != null }
-            .minBy { courier ->
+        // NOTE: initial implementation of finding the best possible courier is very slow
+        // due to N queries to fetch active orders
+        // Instead - find 10 closest and check them
+        val candidates = courierLocationRepository.getAll()
+            .sortedBy { (_, location) ->
+                location.latLng.distanceTo(restaurant.address.location)
+            }
+            .take(10)
+
+        val (courier, _) = courierRepository.findAllById(candidates.map { it.key })
+            .map { courier ->
+                courier to candidates.first { it.key == courier.id }.value
+            }
+            .minBy { (courier, location) ->
                 val remainingTime = courier.activeOrders.sumByDouble { order ->
                     when (order.status) {
                         OrderStatus.Placed,
                         OrderStatus.Preparing,
                         OrderStatus.AwaitingPickup -> {
-                            courier.location!!.latLng.distanceTo(restaurant.address.location) +
+                            location.latLng.distanceTo(restaurant.address.location) +
                                     restaurant.address.location.distanceTo(order.deliveryAddress.location)
                         }
                         OrderStatus.InDelivery -> {
-                            courier.location!!.latLng.distanceTo(order.deliveryAddress.location)
+                            location.latLng.distanceTo(order.deliveryAddress.location)
                         }
                         OrderStatus.Delivered -> 0.0
                     }
                 }
-                val newEta = courier.location!!.latLng.distanceTo(restaurant.address.location) +
+                val newEta = location.latLng.distanceTo(restaurant.address.location) +
                         restaurant.address.location.distanceTo(basket.deliveryAddress.location)
 
                 // Use a coefficient to penalize pending orders

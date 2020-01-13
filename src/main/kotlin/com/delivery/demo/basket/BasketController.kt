@@ -44,7 +44,7 @@ class BasketController(
     @PostMapping("/addItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun addItemToBasket(@RequestBody @Valid input: AddItemToBasketInput, principal: Principal): BasketDTO {
         val restaurant = restaurantRepository.findById(input.restaurantId)
-            .orElseThrow { Exception("Restaurant not found") }
+            .orElseThrow { Exception("Restaurant with id ${input.restaurantId} not found") }
 
         val dish = restaurant.dishes.find { it.id == input.dishId } ?: throw Exception("Dish not found")
 
@@ -77,7 +77,7 @@ class BasketController(
     @PostMapping("/removeItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun removeItemFromBasket(@RequestBody @Valid input: RemoveFromBasketInput): BasketDTO {
         val restaurant = restaurantRepository.findById(input.restaurantId)
-            .orElseThrow { Exception("Restaurant not found") }
+            .orElseThrow { Exception("Restaurant with id ${input.restaurantId} not found") }
 
         val dish = restaurant.dishes.find { it.id == input.dishId } ?: throw Exception("Dish not found")
 

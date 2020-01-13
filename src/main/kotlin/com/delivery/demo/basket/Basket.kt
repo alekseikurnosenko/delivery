@@ -1,6 +1,7 @@
 package com.delivery.demo.basket
 
 import com.delivery.demo.Address
+import com.delivery.demo.Aggregate
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
 import org.joda.money.Money
@@ -10,26 +11,25 @@ import javax.persistence.*
 
 @Entity
 @Table(name = "baskets")
-data class Basket(
-    @Id
-    val id: UUID,
+class Basket(
     val owner: String,
     val deliveryAddress: Address,
+    restaurant: Restaurant
+) : Aggregate() {
+
+    @OneToMany(mappedBy = "basket", cascade = [CascadeType.ALL])
+    var items: MutableList<BasketItem> = mutableListOf()
+        protected set
+
     @ManyToOne
     @JoinColumn(name = "restaurant_id")
-    val restaurant: Restaurant,
-    @OneToMany(mappedBy = "basket", cascade = [CascadeType.ALL])
-    private val _items: MutableList<BasketItem> = mutableListOf()
-) {
-
-    val items: List<BasketItem>
-        get() = _items
+    val restaurant: Restaurant = restaurant
 
     val totalAmount: Money
-        get() = if (_items.isEmpty()) {
+        get() = if (items.isEmpty()) {
             Money.of(restaurant.currency, BigDecimal.ZERO)
         } else {
-            _items.map { it.dish.price.multipliedBy(it.quantity.toLong()) }.reduce { acc, money ->
+            items.map { it.dish.price.multipliedBy(it.quantity.toLong()) }.reduce { acc, money ->
                 acc + money
             }
         }
@@ -42,11 +42,11 @@ data class Basket(
         }
 
     fun addItem(dish: Dish, quantity: Int) {
-        val basketItemIndex = _items.indexOfFirst { it.dish.id == dish.id }
+        val basketItemIndex = items.indexOfFirst { it.dish.id == dish.id }
         if (basketItemIndex != -1) {
-            _items[basketItemIndex].quantity = _items[basketItemIndex].quantity + quantity
+            items[basketItemIndex].quantity = items[basketItemIndex].quantity + quantity
         } else {
-            _items.add(
+            items.add(
                 BasketItem(
                     dish = dish,
                     quantity = quantity,
@@ -57,11 +57,11 @@ data class Basket(
     }
 
     fun removeItem(dish: Dish, quantity: Int) {
-        val basketItemIndex = _items.indexOfFirst { it.dish.id == dish.id }
+        val basketItemIndex = items.indexOfFirst { it.dish.id == dish.id }
         // Don't fail trying to remove non-existent items
-        val basketItem = if (basketItemIndex > 0) _items[basketItemIndex] else return
+        val basketItem = if (basketItemIndex > 0) items[basketItemIndex] else return
         if (quantity >= basketItem.quantity) {
-            _items.remove(basketItem)
+            items.remove(basketItem)
         } else {
             basketItem.quantity -= quantity
         }

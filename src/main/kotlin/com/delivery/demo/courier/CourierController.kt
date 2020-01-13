@@ -20,7 +20,8 @@ import java.util.*
 @Tag(name = "couriers")
 class CourierController(
     val courierRepository: CourierRepository,
-    val eventPublisher: EventPublisher
+    val eventPublisher: EventPublisher,
+    val courierLocationRepository: CourierLocationRepository
 ) {
 
     @PostMapping("")
@@ -89,11 +90,10 @@ class CourierController(
     fun updateLocation(
         @PathVariable("courierId", required = true) courierId: UUID,
         @RequestBody input: UpdateLocationInput
-    ): CourierDTO {
-        val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
-        courier.updateLocation(LocationReport(input.latLng, Date()))
-        eventPublisher.publish(courier.events)
-        return courierRepository.save(courier).asDTO(withOrders = true)
+    ) {
+        courierLocationRepository.updateLocation(courierId, LocationReport(input.latLng, Date()))
+        val event = CourierLocationUpdated(courierId, input.latLng)
+        eventPublisher.publish(listOf(event))
     }
 
     @PostMapping("/{courierId}/startShift")

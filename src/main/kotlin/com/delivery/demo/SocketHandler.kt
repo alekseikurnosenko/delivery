@@ -101,7 +101,9 @@ class SocketHandler(
             }
             val type = event::class.java.name
             val payload = objectMapper.writeValueAsString(event)
-            sessions.filter { affectedUserIds.contains(it.principal!!.name) }
+            sessions.filter { session ->
+                session.principal?.let { affectedUserIds.contains(it.name) } ?: true
+            }
                 .forEach { session ->
                     // We don't allow un-authenticated users
                     // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
@@ -154,13 +156,13 @@ class SocketHandler(
     }
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
-        val principal = session.principal
-        if (principal == null) {
-            session.close()
-        } else {
+//        val principal = session.principal
+//        if (principal == null) {
+//            session.close()
+//        } else {
 //            sessionIds.add(Ids(principal.name))
             sessions.add(session)
-        }
+//        }
 
     }
 

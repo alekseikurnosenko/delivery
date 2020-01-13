@@ -57,7 +57,7 @@ class Order constructor(
             return
         }
 
-        throw Exception("Cannot start preparing, order is $status")
+        throw Exception("Cannot start preparing Order(id=$id), order is $status")
     }
 
     fun finishPreparing() {
@@ -71,7 +71,7 @@ class Order constructor(
             return
         }
 
-        throw Exception("Cannot finish preparing, order is $status")
+        throw Exception("Cannot finish preparing Order(id=$id), order is $status")
     }
 
     fun assignToCourier(courier: Courier) {

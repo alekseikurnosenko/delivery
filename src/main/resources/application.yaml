@@ -3,6 +3,8 @@ spring:
     url: ${JDBC_DATABASE_URL}
     username: ${JDBC_DATABASE_USERNAME}
     password: ${JDBC_DATABASE_PASSWORD}
+    hikari:
+      maximumPoolSize: 10
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -28,3 +30,15 @@ logging:
 #            sql: TRACE
 #  file:
 #    path: log
+
+
+
+management:
+  metrics:
+    export:
+      datadog:
+        api-key: ${DD_KEY}
+  endpoints:
+    web:
+      exposure:
+        include: metrics

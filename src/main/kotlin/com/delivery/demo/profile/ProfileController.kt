@@ -2,6 +2,8 @@ package com.delivery.demo.profile
 
 import com.delivery.demo.Address
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.hibernate.annotations.common.util.impl.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 import java.security.Principal
@@ -16,21 +18,38 @@ import java.security.Principal
 class ProfileController(
     private val profileRepostiory: ProfileRepostiory
 ) {
+    private val logger = LoggerFactory.logger(ProfileController::class.java)
 
     @PostMapping("/address")
     fun setAddress(@RequestBody address: Address, principal: Principal): Profile {
-        val profile = profileRepostiory.findByName(principal.name)
+        return profileRepostiory.findByUserId(principal.name)
             .map { profile ->
                 profile.deliveryAddress = address
                 profileRepostiory.save(profile)
             }
             .orElseGet {
                 val newProfile = Profile()
-                newProfile.name = principal.name
+                newProfile.userId = principal.name
                 newProfile.deliveryAddress = address
                 profileRepostiory.save(newProfile)
             }
-
-        return profile
     }
+
+    @PostMapping("/payment_method")
+    fun setPaymentMethod(@RequestBody input: SetPaymentMethodInput, principal: Principal): Profile {
+        logger.info("setPaymentMethod: $input")
+        return profileRepostiory.findByUserId(principal.name)
+            .map { profile ->
+                profile.paymentMethodId = input.paymentMethodId
+                profileRepostiory.save(profile)
+            }
+            .orElseThrow {
+                ProfileNotFoundException(principal.name)
+            }
+    }
+
+    data class SetPaymentMethodInput(val paymentMethodId: String)
 }
+
+@ResponseStatus(value = HttpStatus.NOT_FOUND)
+class ProfileNotFoundException(val userId: String) : Exception("Profile(userId=$userId) not found")

@@ -13,6 +13,11 @@ spring:
         show_sql: false
         use_sql_comments: false
         format_sql: false
+  rabbitmq:
+    host: "localhost"
+    port: 5672
+    username: "guest"
+    password: "guest"
 
 auth0:
   audience: https://delivery/api
@@ -20,6 +25,7 @@ auth0:
 
 logging:
   level:
+    datadog: DEBUG
     com:
       auth0: WARN
 #    org:
@@ -30,6 +36,13 @@ logging:
 #            sql: TRACE
 #  file:
 #    path: log
+
+dd:
+  service:
+    name: "Delivery"
+  integration:
+    jdbc-datasource:
+      enabled: true
 
 
 

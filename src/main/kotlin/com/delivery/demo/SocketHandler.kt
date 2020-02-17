@@ -6,6 +6,7 @@ import com.delivery.demo.order.*
 import com.delivery.demo.restaurant.RestaurantAdded
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.hibernate.annotations.common.util.impl.LoggerFactory
+import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -18,7 +19,6 @@ data class WebSocketMessage(val type: String, val payload: String)
 
 @Component
 class SocketHandler(
-    eventSubscriber: EventSubscriber,
     val objectMapper: ObjectMapper,
     @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>
 ) : TextWebSocketHandler() {
@@ -38,88 +38,93 @@ class SocketHandler(
     private val restaurantsIds = mutableMapOf<UUID, String>()
     private val courierIds = mutableMapOf<UUID, String>()
 
-    init {
-        eventSubscriber.subscribeAll(
-            events
-        ) { event ->
+    @RabbitListener(queues = ["websocket"])
+    fun onEvent(event: DomainEvent) {
+        // Retrieving ids and updating the lists have to happen at one go, since we might remove something from the list
+        // But still send it
 
-            // Retrieving ids and updating the lists have to happen at one go, since we might remove something from the list
-            // But still send it
-
-            // Am I supposed to write rules for every event? omg
-            // Moreover, this "map" would need to re-hydrated on server start
-            // even if I allow users to subscribe to some particular ids
-            // would be semi-useless since we would anyway need to verify that we can actually access them
-            val affectedUserIds: List<String> = when (event) {
-                is CourierLocationUpdated -> {
-                    // Users
-                    orders.filter { it.courierId == event.courierId }.map { it.userId }
-                    // MB: restaurants?
-                }
-                is OrderPreparationStarted -> {
-                    // admins?
-                    listOf()
-                }
-                is OrderPreparationFinished -> {
-                    val couriers = orders.filter { it.orderId == event.orderId }.mapNotNull { courierIds[it.courierId] }
-                    users(event.orderId) + couriers
-                }
-                is OrderPlaced -> {
-                    orders.add(Ids(event.userId, event.orderId, event.restaurantId))
-
-                    restaurants(event.restaurantId) + users(event.orderId)
-                }
-                is OrderAssigned -> {
-                    orders.find { it.orderId == event.orderId }?.let { it.courierId = event.courierId }
-
-                    users(event.orderId) + couriers(event.courierId)
-                }
-                is OrderPickedUp -> {
-                    users(event.orderId)
-                }
-                is OrderDelivered -> {
-                    val session = orders.find { it.orderId == event.orderId }
-                    orders.removeAll { it.orderId == event.orderId }
-
-                    listOfNotNull(session?.userId)
-                }
-                is CourierAdded -> {
-                    courierIds[event.courierId] = event.accountId
-
-                    listOf() // Admin
-                }
-                is RestaurantAdded -> {
-                    restaurantsIds[event.restaurantId] = event.accountId
-
-                    listOf()
-                }
-                else -> listOf()
+        // Am I supposed to write rules for every event? omg
+        // Moreover, this "map" would need to re-hydrated on server start
+        // even if I allow users to subscribe to some particular ids
+        // would be semi-useless since we would anyway need to verify that we can actually access them
+        val affectedUserIds: List<String> = when (event) {
+            is CourierLocationUpdated -> {
+                // Users
+                orders.filter { it.courierId == event.courierId }.map { it.userId }
+                // MB: restaurants?
             }
+            is OrderPreparationStarted -> {
+                // admins?
+                listOf()
+            }
+            is OrderPreparationFinished -> {
+                val couriers = orders.filter { it.orderId == event.orderId }.mapNotNull { courierIds[it.courierId] }
+                users(event.orderId) + couriers
+            }
+            is OrderPlaced -> {
+                orders.add(Ids(event.userId, event.orderId, event.restaurantId))
 
-            if (event::class != CourierLocationUpdated::class) {
-                println("sending $event")
+                users(event.orderId)
             }
-            val type = event::class.java.name
-            val payload = objectMapper.writeValueAsString(event)
-            sessions.filter { session ->
-                session.principal?.let { affectedUserIds.contains(it.name) } ?: true
+            is OrderPaid -> {
+                // A bit weird, but maybe it makes sense?
+                restaurants(event.restaurantId) + users(event.orderId)
             }
-                .forEach { session ->
-                    // We don't allow un-authenticated users
-                    // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
-                    // Not sure whether we still need btw
-                    synchronized(session) {
-                        try {
-                            session.sendMessage(
-                                TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload)))
-                            )
-                        } catch (e: Exception) {
-                            logger.error("Failed to send message", e)
-                        }
-                    }
-                }
+            is OrderAssigned -> {
+                orders.find { it.orderId == event.orderId }?.let { it.courierId = event.courierId }
+
+                users(event.orderId) + couriers(event.courierId)
+            }
+            is OrderPickedUp -> {
+                users(event.orderId)
+            }
+            is OrderDelivered -> {
+                val session = orders.find { it.orderId == event.orderId }
+                orders.removeAll { it.orderId == event.orderId }
+
+                listOfNotNull(session?.userId)
+            }
+            is OrderCanceled -> {
+                val session = orders.find { it.orderId == event.orderId }
+                orders.removeAll { it.orderId == event.orderId }
+
+                listOfNotNull(session?.userId)
+            }
+            is CourierAdded -> {
+                courierIds[event.courierId] = event.accountId
+
+                listOf() // Admin
+            }
+            is RestaurantAdded -> {
+                restaurantsIds[event.restaurantId] = event.accountId
+
+                listOf()
+            }
+            else -> listOf()
         }
 
+        if (event::class != CourierLocationUpdated::class) {
+            println("sending $event to $affectedUserIds")
+        }
+        val type = event::class.java.name
+        val payload = objectMapper.writeValueAsString(event)
+        sessions.filter { session ->
+            session.principal?.let { affectedUserIds.contains(it.name) } ?: true
+        }
+            .forEach { session ->
+                // We don't allow un-authenticated users
+                // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
+                // Not sure whether we still need btw
+                synchronized(session) {
+                    try {
+                        session.sendMessage(
+                            TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload)))
+                        )
+                    } catch (e: Exception) {
+                        logger.error("Failed to send message", e)
+                    }
+                }
+            }
     }
 
     fun users(orderId: UUID) = orders.filter { it.orderId == orderId }.map { it.userId }
@@ -161,7 +166,7 @@ class SocketHandler(
 //            session.close()
 //        } else {
 //            sessionIds.add(Ids(principal.name))
-            sessions.add(session)
+        sessions.add(session)
 //        }
 
     }

@@ -3,6 +3,7 @@ package com.delivery.demo.basket
 import com.delivery.demo.EventPublisher
 import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.order.OrderDTO
+import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.order.asDTO
 import com.delivery.demo.profile.ProfileRepostiory
 import com.delivery.demo.restaurant.DishDTO
@@ -27,7 +28,7 @@ import javax.validation.Valid
 class BasketController(
     val restaurantRepository: RestaurantRepository,
     val basketRepository: BasketRepository,
-    val placeOrderUseCase: PlacerOrderUseCase,
+    val orderRepository: OrderRepository,
     val eventPublisher: EventPublisher,
     val profileRepostiory: ProfileRepostiory
 ) {
@@ -57,7 +58,7 @@ class BasketController(
         // if missing, create one
         // Should it be the controller's job to do it?
         val basket = basketRepository.findByOwner(owner).orElseGet {
-            val profile = profileRepostiory.findByName(principal.name).orElseThrow { Exception("No user profile") }
+            val profile = profileRepostiory.findByUserId(principal.name).orElseThrow { Exception("No user profile") }
             val deliveryAddress = profile.deliveryAddress ?: throw Exception("Delivery address not set")
             val newBasket = restaurant.newBasket(owner, deliveryAddress)
             basketRepository.save(newBasket)
@@ -99,9 +100,19 @@ class BasketController(
         val basket = basketRepository.findByOwner(owner).orElseThrow { Exception("No basket avaialble") }
 
         // TODO: Address should be set at the very beginning before searching
-        val order = placeOrderUseCase.place(basket)
+        val restaurant = basket.restaurant
 
+        // Create order
+        val order = restaurant.placeOrder(
+            userId = basket.owner,
+            deliveryAddress = basket.deliveryAddress,
+            items = basket.items
+        )
+        orderRepository.save(order)
         eventPublisher.publish(order.events)
+
+        // Clear the basket
+        basketRepository.delete(basket)
 
         return order.asDTO()
     }

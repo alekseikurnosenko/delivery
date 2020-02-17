@@ -11,6 +11,7 @@ import javax.persistence.Table
 data class Profile(
     @Id val id: UUID = UUID.randomUUID()
 ) {
-    var name: String? = null
+    var userId: String? = null
     var deliveryAddress: Address? = null
+    var paymentMethodId: String? = null
 }

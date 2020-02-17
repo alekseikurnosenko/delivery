@@ -1,0 +1,16 @@
+version: '2'
+
+services:
+  rabbitmq:
+    image: 'rabbitmq:3.8-management'
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+      - '25672:25672'
+      - '4369:4369'
+    volumes:
+      - 'rabbitmq_data:/rabbitmq'
+
+volumes:
+  rabbitmq_data:
+    driver: local

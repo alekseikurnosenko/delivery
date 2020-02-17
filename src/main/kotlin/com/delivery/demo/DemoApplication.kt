@@ -9,8 +9,6 @@ import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
-import io.micrometer.core.instrument.Gauge
-import io.micrometer.core.instrument.MeterRegistry
 import io.swagger.v3.core.converter.AnnotatedType
 import io.swagger.v3.core.converter.ModelConverter
 import io.swagger.v3.core.converter.ModelConverterContext
@@ -23,7 +21,10 @@ import io.swagger.v3.oas.models.security.SecurityScheme
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
+import org.slf4j.LoggerFactory
 import org.springdoc.api.OpenApiCustomiser
+import org.springframework.amqp.core.TopicExchange
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
@@ -44,8 +45,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.concurrent.LinkedBlockingQueue
 
 
 @Component
@@ -136,6 +135,7 @@ class DemoApplication {
         OrderAssigned::class.java,
         OrderPickedUp::class.java,
         OrderDelivered::class.java,
+        OrderCanceled::class.java,
         CourierLocationUpdated::class.java,
         CourierShiftStarted::class.java,
         CourierShiftStopped::class.java,
@@ -182,84 +182,139 @@ interface Subscription {
     fun unsubscribe()
 }
 
-
-@Configuration
-class AbstractTramEventTestConfiguration(
-    private val meterRegistry: MeterRegistry
+@Component
+class TestSubscriber(
+    private val template: RabbitTemplate,
+    private val exchange: TopicExchange
 ) {
 
-    data class Envelope(
-        val topic: String,
-        val events: DomainEvent
-    )
-
-    private val eventsQueue = LinkedBlockingQueue<Envelope>()
-    private val subscribers = ConcurrentLinkedDeque<Pair<Pair<String, Class<out DomainEvent>>, (DomainEvent) -> Unit>>()
-    private val EVENT_TYPE_HEADER = "event_type"
-
-    init {
-        Gauge.builder("events.queue.length") { eventsQueue.size }
-            .register(meterRegistry)
-
-        Thread {
-            while (true) {
-                val (topic, event) = eventsQueue.take()
-                val key = topic to event::class.java
-                subscribers.filter { it.first == key }.forEach { it.second(event) }
-            }
-        }.start()
-    }
+    val logger = LoggerFactory.getLogger(TestSubscriber::class.java)
 
     @Bean
-    fun eventPublisher(objectMapper: ObjectMapper): EventPublisher {
+    fun eventPublisher(): EventPublisher {
         return object : EventPublisher {
             override fun publish(events: List<DomainEvent>, topic: String) {
                 events.forEach {
-                    eventsQueue.offer(Envelope(topic, it))
+                    val routingKey = when (it) {
+                        is OrderPlaced -> "order.placed"
+                        is OrderPaid -> "order.paid"
+                        else -> "event"
+                    }
+                    template.convertAndSend(exchange.name, routingKey, it)
                 }
             }
         }
     }
 
-    @Bean
-    fun eventSubscriber(objectMapper: ObjectMapper): EventSubscriber {
-        val subscriberId = UUID.randomUUID().toString()
-        return object : EventSubscriber {
-            override fun <T : DomainEvent> subscribeAll(
-                eventTypes: List<Class<out T>>,
-                topic: String,
-                handler: (T) -> Unit
-            ): Subscription {
-                val subscriptions = eventTypes.map { subscribe(it, topic, handler) }
-
-                return object : Subscription {
-                    override fun unsubscribe() {
-                        subscriptions.forEach { it.unsubscribe() }
-                    }
-
-                }
-            }
-
-            override fun <T : DomainEvent> subscribe(
-                eventType: Class<T>,
-                topic: String,
-                handler: (T) -> Unit
-            ): Subscription {
-                val key = topic to eventType
-                val handler = handler as (DomainEvent) -> Unit
-                val item = key to handler
-                subscribers.add(item)
-
-                return object : Subscription {
-                    override fun unsubscribe() {
-                        subscribers.remove(item)
-                    }
-
-                }
-            }
-        }
-    }
+//    @Bean
+//    fun eventSubscriber(): EventSubscriber {
+//        return object : EventSubscriber {
+//            override fun <T : DomainEvent> subscribe(
+//                eventType: Class<T>,
+//                topic: String,
+//                handler: (T) -> Unit
+//            ): Subscription {
+//                return object : Subscription {
+//                    override fun unsubscribe() {
+//
+//                    }
+//                }
+//            }
+//
+//            override fun <T : DomainEvent> subscribeAll(
+//                eventTypes: List<Class<out T>>,
+//                topic: String,
+//                handler: (T) -> Unit
+//            ): Subscription {
+//                return object : Subscription {
+//                    override fun unsubscribe() {
+//
+//                    }
+//                }
+//            }
+//
+//        }
+//    }
 }
+
+//
+//@Configuration
+//class AbstractTramEventTestConfiguration(
+//    private val meterRegistry: MeterRegistry
+//) {
+//
+//    data class Envelope(
+//        val topic: String,
+//        val events: DomainEvent
+//    )
+//
+//    private val eventsQueue = LinkedBlockingQueue<Envelope>()
+//    private val subscribers = ConcurrentLinkedDeque<Pair<Pair<String, Class<out DomainEvent>>, (DomainEvent) -> Unit>>()
+//    private val EVENT_TYPE_HEADER = "event_type"
+//
+//    init {
+//        Gauge.builder("events.queue.length") { eventsQueue.size }
+//            .register(meterRegistry)
+//
+//        Thread {
+//            while (true) {
+//                val (topic, event) = eventsQueue.take()
+//                val key = topic to event::class.java
+//                subscribers.filter { it.first == key }.forEach { it.second(event) }
+//            }
+//        }.start()
+//    }
+//
+//    @Bean
+//    fun eventPublisher(objectMapper: ObjectMapper): EventPublisher {
+//        return object : EventPublisher {
+//            override fun publish(events: List<DomainEvent>, topic: String) {
+//                events.forEach {
+//                    eventsQueue.offer(Envelope(topic, it))
+//                }
+//            }
+//        }
+//    }
+//
+//    @Bean
+//    fun eventSubscriber(objectMapper: ObjectMapper): EventSubscriber {
+//        val subscriberId = UUID.randomUUID().toString()
+//        return object : EventSubscriber {
+//            override fun <T : DomainEvent> subscribeAll(
+//                eventTypes: List<Class<out T>>,
+//                topic: String,
+//                handler: (T) -> Unit
+//            ): Subscription {
+//                val subscriptions = eventTypes.map { subscribe(it, topic, handler) }
+//
+//                return object : Subscription {
+//                    override fun unsubscribe() {
+//                        subscriptions.forEach { it.unsubscribe() }
+//                    }
+//
+//                }
+//            }
+//
+//            override fun <T : DomainEvent> subscribe(
+//                eventType: Class<T>,
+//                topic: String,
+//                handler: (T) -> Unit
+//            ): Subscription {
+//                val key = topic to eventType
+//                val handler = handler as (DomainEvent) -> Unit
+//                val item = key to handler
+//                subscribers.add(item)
+//
+//                return object : Subscription {
+//                    override fun unsubscribe() {
+//                        subscribers.remove(item)
+//                    }
+//
+//                }
+//            }
+//        }
+//    }
+//}
 
 @Configuration
 internal class WebMvcConfiguration : WebMvcConfigurer {

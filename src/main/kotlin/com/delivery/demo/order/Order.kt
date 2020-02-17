@@ -3,12 +3,10 @@ package com.delivery.demo.order
 import com.delivery.demo.Address
 import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
-import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
-import com.delivery.demo.restaurant.asDTO
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.swagger.v3.oas.annotations.media.Schema
 import org.joda.money.Money
@@ -18,12 +16,15 @@ import javax.persistence.*
 @Entity
 @Table(name = "orders")
 class Order constructor(
+    userId: String,
     restaurant: Restaurant,
     deliveryAddress: Address,
     items: List<BasketItem> // Can be an interface?
 ) : Aggregate() {
 
     val deliveryAddress: Address = deliveryAddress
+
+    val userId: String = userId
 
     @ManyToOne
     @JoinColumn(name = "restaurant_id")
@@ -51,7 +52,7 @@ class Order constructor(
             // Idempotent
             return
         }
-        if (status == OrderStatus.Placed) {
+        if (status == OrderStatus.SentToRestaurant) {
             status = OrderStatus.Preparing
             registerEvent(OrderPreparationStarted(id, status))
             return
@@ -101,6 +102,34 @@ class Order constructor(
         registerEvent(OrderDelivered(id, status))
     }
 
+    fun confirmPaid() {
+        status = OrderStatus.SentToRestaurant // ?? makes no sense, right?
+
+        registerEvent(
+            OrderPaid(
+                userId,
+                id,
+                restaurant.id,
+                restaurant.name,
+                totalAmount,
+                deliveryAddress,
+                status
+            )
+        )
+    }
+
+    fun cancel(reason: String) {
+        status = OrderStatus.Canceled
+
+        registerEvent(
+            OrderCanceled(
+                id,
+                status,
+                reason
+            )
+        )
+    }
+
     companion object {
         fun place(
             userId: String,
@@ -109,6 +138,7 @@ class Order constructor(
             items: List<BasketItem>
         ): Order {
             val order = Order(
+                userId = userId,
                 restaurant = restaurant,
                 deliveryAddress = deliveryAddress,
                 items = items
@@ -122,7 +152,7 @@ class Order constructor(
                 restaurantId = restaurant.id,
                 restaurantName = restaurant.name,
                 deliveryAddress = order.deliveryAddress,
-                totalAmount = order.totalAmount.asDTO(),
+                totalAmount = order.totalAmount,
                 status = order.status
             )
             order.registerEvent(event)
@@ -153,8 +183,9 @@ data class OrderItem(
 
 @Schema(enumAsRef = true) // TODO: Should use DTO type instead
 enum class OrderStatus {
-    Placed,
-    //    Paid,
+    Canceled,
+    Placed, // Restaurant has received the order
+    SentToRestaurant, // ?
     Preparing, // Restaurant has started preparing the order
     AwaitingPickup, // Restaurant has finsihed preparing and is awaiting courier arrival
     InDelivery, // Courier has picked up an order and is on the way to client
@@ -171,12 +202,36 @@ data class OrderPreparationFinished(
     val status: OrderStatus
 ) : DomainEvent
 
+data class OrderCreated(
+    val userId: String,
+    val orderId: UUID,
+    val restaurantId: UUID,
+    val restaurantName: String,
+    val totalAmount: Money,
+    val deliveryAddress: Address,
+    val status: OrderStatus
+) : DomainEvent
+
 data class OrderPlaced(
     val userId: String,
     val orderId: UUID,
     val restaurantId: UUID,
     val restaurantName: String,
-    val totalAmount: JacksonConfiguration.MoneyView,
+    val totalAmount: Money,
+    val deliveryAddress: Address,
+    val status: OrderStatus
+) : DomainEvent {
+    companion object {
+        const val queue = "order.placed"
+    }
+}
+
+data class OrderPaid(
+    val userId: String,
+    val orderId: UUID,
+    val restaurantId: UUID,
+    val restaurantName: String,
+    val totalAmount: Money,
     val deliveryAddress: Address,
     val status: OrderStatus
 ) : DomainEvent
@@ -200,4 +255,10 @@ data class OrderPickedUp(
 data class OrderDelivered(
     val orderId: UUID,
     val status: OrderStatus
+) : DomainEvent
+
+data class OrderCanceled(
+    val orderId: UUID,
+    val status: OrderStatus,
+    val reason: String
 ) : DomainEvent

@@ -20,6 +20,8 @@ abstract class Aggregate {
     @Transient
     private val domainEvents = mutableListOf<DomainEvent>()
 
+    @Version
+    private var version: Long = 0L
 
     protected fun registerEvent(event: DomainEvent) {
         domainEvents.add(event)

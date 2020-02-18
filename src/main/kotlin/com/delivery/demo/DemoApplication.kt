@@ -190,21 +190,21 @@ class TestSubscriber(
 
     val logger = LoggerFactory.getLogger(TestSubscriber::class.java)
 
-    @Bean
-    fun eventPublisher(): EventPublisher {
-        return object : EventPublisher {
-            override fun publish(events: List<DomainEvent>, topic: String) {
-                events.forEach {
-                    val routingKey = when (it) {
-                        is OrderPlaced -> "order.placed"
-                        is OrderPaid -> "order.paid"
-                        else -> "event"
-                    }
-                    template.convertAndSend(exchange.name, routingKey, it)
-                }
-            }
-        }
-    }
+//    @Bean
+//    fun eventPublisher(): EventPublisher {
+//        return object : EventPublisher {
+//            override fun publish(events: List<DomainEvent>, topic: String) {
+//                events.forEach {
+//                    val routingKey = when (it) {
+//                        is OrderPlaced -> "order.placed"
+//                        is OrderPaid -> "order.paid"
+//                        else -> "event"
+//                    }
+//                    template.convertAndSend(exchange.name, routingKey, it)
+//                }
+//            }
+//        }
+//    }
 
 //    @Bean
 //    fun eventSubscriber(): EventSubscriber {

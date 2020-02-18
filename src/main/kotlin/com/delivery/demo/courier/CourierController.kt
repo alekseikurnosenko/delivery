@@ -97,6 +97,7 @@ class CourierController(
     }
 
     @PostMapping("/{courierId}/startShift")
+    @Transactional
     fun startShift(
         @PathVariable("courierId", required = true) courierId: UUID
     ): CourierDTO {
@@ -107,6 +108,7 @@ class CourierController(
     }
 
     @PostMapping("/{courierId}/stopShift")
+    @Transactional
     fun stopShift(
         @PathVariable("courierId", required = true) courierId: UUID
     ): CourierDTO {

@@ -1,7 +1,10 @@
 package com.delivery.demo.courier
 
+import com.delivery.demo.Address
 import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
+import com.delivery.demo.delivery.Delivery
+import com.delivery.demo.delivery.DeliveryRequest
 import com.delivery.demo.order.Order
 import java.util.*
 import javax.persistence.*
@@ -42,6 +45,10 @@ class Courier(
     @JoinTable
     val activeOrders: MutableSet<Order> = mutableSetOf()
 
+    @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @JoinTable
+    val pendingDeliveryRequests: MutableList<DeliveryRequest> = mutableListOf()
+
     var onShift: Boolean = onShift
         protected set
 
@@ -66,6 +73,8 @@ class Courier(
         return order
     }
 
+    // confirmDeliveryPickup
+    // Not part of courier!
     fun confirmOrderPickup(orderId: UUID): Order {
         val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order: $orderId")
         order.confirmPickup()
@@ -78,6 +87,23 @@ class Courier(
         activeOrders.remove(order)
         return order
     }
+
+    fun requestDelivery(deliveryRequest: DeliveryRequest) {
+        pendingDeliveryRequests.add(deliveryRequest)
+    }
+
+    fun acceptRequest(delivery: Delivery) {
+        pendingDeliveryRequests.removeAll { it.delivery.id == delivery.id }
+    }
+
+    fun rejectRequest(delivery: Delivery) {
+        pendingDeliveryRequests.removeAll { it.delivery.id == delivery.id }
+    }
+
+    fun timeoutRequest(delivery: Delivery) {
+        pendingDeliveryRequests.removeAll { it.delivery.id == delivery.id }
+    }
+
 
     companion object {
         fun new(accountId: String, fullName: String): Courier {
@@ -118,3 +144,41 @@ data class CourierAdded(
     val fullName: String,
     val onShift: Boolean
 ) : DomainEvent
+
+data class DeliveryRequested(
+    val requestId: UUID,
+    val deliveryId: UUID,
+    val courierId: UUID,
+    val pickup: Address,
+    val dropoff: Address
+) : DomainEvent
+
+data class DeliveryRequestAccepted(
+    val requestId: UUID,
+    val deliveryId: UUID,
+    val courierId: UUID
+) : DomainEvent {
+    companion object {
+        const val queue = "deliveryRequest.accepted"
+    }
+}
+
+data class DeliveryRequestRejected(
+    val requestId: UUID,
+    val deliveryId: UUID,
+    val courierId: UUID
+) : DomainEvent {
+    companion object {
+        const val queue = "deliveryRequest.rejected"
+    }
+}
+
+data class DeliveryRequestTimedOut(
+    val requestId: UUID,
+    val deliveryId: UUID,
+    val courierId: UUID
+) : DomainEvent {
+    companion object {
+        const val queue = "deliveryRequest.timed_out"
+    }
+}

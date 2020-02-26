@@ -27,7 +27,7 @@ class ProcessPlacedOrderUseCase(
 
         val profile = profileRepository.findByUserId(order.userId)
             .orElseThrow {
-                AmqpRejectAndDontRequeueException("Profile(id=${order.userId}) not found")
+                AmqpRejectAndDontRequeueException("Profile(userId=${order.userId}) not found")
             }
 
         val paymentMethodId = profile.paymentMethodId

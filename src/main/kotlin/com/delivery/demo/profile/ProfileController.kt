@@ -37,7 +37,6 @@ class ProfileController(
 
     @PostMapping("/payment_method")
     fun setPaymentMethod(@RequestBody input: SetPaymentMethodInput, principal: Principal): Profile {
-        logger.info("setPaymentMethod: $input")
         return profileRepostiory.findByUserId(principal.name)
             .map { profile ->
                 profile.paymentMethodId = input.paymentMethodId

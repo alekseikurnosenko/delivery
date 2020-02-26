@@ -3,9 +3,14 @@ package com.delivery.demo.courier
 import com.auth0.spring.security.api.authentication.AuthenticationJsonWebToken
 import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
+import com.delivery.demo.delivery.DeliveryDTO
+import com.delivery.demo.delivery.DeliveryRepository
+import com.delivery.demo.delivery.DeliveryRequestDTO
+import com.delivery.demo.delivery.asDTO
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
@@ -21,7 +26,8 @@ import java.util.*
 class CourierController(
     val courierRepository: CourierRepository,
     val eventPublisher: EventPublisher,
-    val courierLocationRepository: CourierLocationRepository
+    val courierLocationRepository: CourierLocationRepository,
+    val deliveryRepository: DeliveryRepository
 ) {
 
     @PostMapping("")
@@ -52,8 +58,52 @@ class CourierController(
         @PathVariable("courierId", required = true) courierId: UUID
     ): List<OrderDTO> {
         val courier = courierRepository.findById(courierId)
-            .orElseThrow { Exception("Unknown courierId: $courierId") }
+            .orElseThrow { CourierNotFoundException(courierId) }
         return courier.activeOrders.map { it.asDTO() }
+    }
+
+    @GetMapping("/{courierId}/requests")
+    fun pendingDeliveryRequests(
+        @PathVariable("courierId", required = true) courierId: UUID
+    ): List<DeliveryRequestDTO> {
+        val courier = courierRepository.findById(courierId)
+            .orElseThrow { CourierNotFoundException(courierId) }
+
+        return courier.pendingDeliveryRequests.map { it.asDTO() }
+    }
+
+    @Transactional
+    @PostMapping("/{courierId}/requests/{deliveryId}/accept")
+    fun acceptDeliveryRequest(
+        @PathVariable("courierId", required = true) courierId: UUID,
+        @PathVariable("deliveryId", required = true) deliveryId: UUID
+    ) {
+        val courier = courierRepository.findById(courierId)
+            .orElseThrow { Exception("Unknown courierId: $courierId") }
+        val delivery = deliveryRepository.findById(deliveryId)
+            .orElseThrow { Exception("Unknown Delivery(id=$deliveryId") }
+
+        delivery.acceptRequestAsCourier(courier)
+        courier.acceptRequest(delivery)
+
+        eventPublisher.publish(delivery.events)
+    }
+
+    @Transactional
+    @PostMapping("/{courierId}/requests/{deliveryId}/reject")
+    fun rejectDeliveryRequest(
+        @PathVariable("courierId", required = true) courierId: UUID,
+        @PathVariable("deliveryId", required = true) deliveryId: UUID
+    ) {
+        val courier = courierRepository.findById(courierId)
+            .orElseThrow { Exception("Unknown courierId: $courierId") }
+        val delivery = deliveryRepository.findById(deliveryId)
+            .orElseThrow { Exception("Unknown Delivery(id=$deliveryId") }
+
+        delivery.rejectRequestAsCourier(courier)
+        courier.rejectRequest(delivery)
+
+        eventPublisher.publish(delivery.events)
     }
 
     @Transactional
@@ -69,6 +119,24 @@ class CourierController(
         eventPublisher.publish(order.events)
 
         return order.asDTO()
+    }
+
+    @Transactional
+    @PostMapping("/{courierId}/deliveries/{deliveryId}/confirmPickup")
+    fun confirmDeliveryPickup(
+        @PathVariable("courierId", required = true) courierId: UUID,
+        @PathVariable("deliveryId", required = true) deliveryId: UUID
+    ): DeliveryDTO {
+        val courier = courierRepository.findById(courierId)
+            .orElseThrow { Exception("Unknown courierId: $courierId") }
+        val delivery = deliveryRepository.findById(deliveryId)
+            .orElseThrow { Exception("Unknown Delivery(id=$deliveryId") }
+
+        delivery.confirmPickupAsCourier(courier)
+
+        eventPublisher.publish(delivery.events)
+
+        return delivery.asDTO()
     }
 
     @Transactional
@@ -141,3 +209,6 @@ data class CourierOrderDTO(
     val pickupAddress: Address,
     val deliveryAddress: Address
 )
+
+@ResponseStatus(value = HttpStatus.NOT_FOUND)
+class CourierNotFoundException(courierId: UUID) : Exception("Courier(id=$courierId) not found")

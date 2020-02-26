@@ -10,6 +10,9 @@ const val PAYMENT_METHOD_NOT_ENOUGH_FUNDS = "PAYMENT_METHOD_NOT_ENOUGH_FUNDS"
 class PaymentService {
 
     fun charge(customerId: String, paymentMethodId: String, amount: Money): ChargeResult {
+        // Because payment gateways are slow!
+        Thread.sleep(500)
+        // TODO: chance to fail
         return when (paymentMethodId) {
             PAYMENT_METHOD_SUCCESS -> ChargeResult.Success
             PAYMENT_METHOD_NOT_ENOUGH_FUNDS -> ChargeResult.NotEnoughFunds

@@ -1,7 +1,7 @@
 package com.delivery.demo.restaurant
 
+import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
-import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.basket.Basket
 import com.delivery.demo.basket.BasketItem
@@ -19,7 +19,7 @@ class Restaurant private constructor(
     val minimumOrderAmount: Money? = null,
     val currency: CurrencyUnit,
     val accountId: String
-) : Aggregate() {
+) : AbstractEntity() {
 
     @OneToMany(mappedBy = "restaurant", cascade = [CascadeType.ALL])
     var dishes: MutableList<Dish> = mutableListOf()

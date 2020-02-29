@@ -1,7 +1,7 @@
 package com.delivery.demo.delivery
 
+import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
-import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.order.Order
@@ -17,7 +17,7 @@ class Delivery(
     @OneToOne
     @JoinColumn(name = "order_id")
     val order: Order
-) : Aggregate() {
+) : AbstractEntity() {
 
     val pickup: Address
         get() = order.restaurant.address

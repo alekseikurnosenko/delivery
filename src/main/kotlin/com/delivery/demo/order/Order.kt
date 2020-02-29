@@ -1,7 +1,7 @@
 package com.delivery.demo.order
 
+import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
-import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.courier.Courier
@@ -21,7 +21,7 @@ class Order constructor(
     restaurant: Restaurant,
     deliveryAddress: Address,
     items: List<BasketItem> // Can be an interface?
-) : Aggregate() {
+) : AbstractEntity() {
 
     val deliveryAddress: Address = deliveryAddress
 

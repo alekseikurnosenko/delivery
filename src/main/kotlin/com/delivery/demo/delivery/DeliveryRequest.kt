@@ -1,6 +1,6 @@
 package com.delivery.demo.delivery
 
-import com.delivery.demo.Aggregate
+import com.delivery.demo.AbstractEntity
 import com.delivery.demo.courier.Courier
 import javax.persistence.*
 
@@ -13,7 +13,7 @@ class DeliveryRequest(
     @ManyToOne
     @JoinColumn(name = "delivery_id")
     val delivery: Delivery
-) : Aggregate() {
+) : AbstractEntity() {
 
     @Enumerated(EnumType.STRING)
     var status: DeliveryRequestStatus = DeliveryRequestStatus.Requested

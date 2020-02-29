@@ -8,7 +8,7 @@ import javax.persistence.*
 
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener::class)
-abstract class Aggregate {
+abstract class AbstractEntity {
 
     @Id
     val id: UUID = UUID.randomUUID()
@@ -37,7 +37,7 @@ abstract class Aggregate {
 
         if (javaClass != ProxyUtils.getUserClass(other)) return false
 
-        other as Aggregate
+        other as AbstractEntity
 
         return id == other.id
     }

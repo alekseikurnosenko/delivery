@@ -1,7 +1,7 @@
 package com.delivery.demo.basket
 
+import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
-import com.delivery.demo.Aggregate
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
 import org.joda.money.Money
@@ -15,7 +15,7 @@ class Basket(
     val owner: String,
     val deliveryAddress: Address,
     restaurant: Restaurant
-) : Aggregate() {
+) : AbstractEntity() {
 
     @OneToMany(mappedBy = "basket", cascade = [CascadeType.ALL])
     var items: MutableList<BasketItem> = mutableListOf()

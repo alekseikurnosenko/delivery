@@ -1,6 +1,6 @@
 package com.delivery.demo.courier
 
-import com.delivery.demo.Aggregate
+import com.delivery.demo.AbstractEntity
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.delivery.DeliveryRequest
 import com.delivery.demo.order.Order
@@ -37,7 +37,7 @@ class Courier(
     val fullName: String,
     val userId: String,
     onShift: Boolean
-) : Aggregate() {
+) : AbstractEntity() {
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinTable

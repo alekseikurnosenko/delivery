@@ -2,6 +2,7 @@ package com.delivery.demo
 
 import com.delivery.demo.courier.CourierAdded
 import com.delivery.demo.courier.CourierLocationUpdated
+import com.delivery.demo.delivery.DeliveryRequested
 import com.delivery.demo.order.*
 import com.delivery.demo.restaurant.RestaurantAdded
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -99,6 +100,9 @@ class SocketHandler(
                 restaurantsIds[event.restaurantId] = event.accountId
 
                 listOf()
+            }
+            is DeliveryRequested -> {
+                couriers(event.courierId)
             }
             else -> listOf()
         }

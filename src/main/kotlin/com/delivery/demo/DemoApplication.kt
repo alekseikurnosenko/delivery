@@ -2,6 +2,7 @@ package com.delivery.demo
 
 import com.delivery.demo.basket.BasketRepository
 import com.delivery.demo.courier.*
+import com.delivery.demo.delivery.DeliveryRequested
 import com.delivery.demo.order.*
 import com.delivery.demo.restaurant.RestaurantAdded
 import com.delivery.demo.restaurant.RestaurantRepository
@@ -125,6 +126,7 @@ class DemoApplication {
             )
     }
 
+    // We can try to use reflection and check for all classes implementing an interface instead
     @Bean
     @Qualifier("publishableEvents")
     fun publishableEvents(): List<Class<out DomainEvent>> = listOf(
@@ -139,7 +141,8 @@ class DemoApplication {
         CourierLocationUpdated::class.java,
         CourierShiftStarted::class.java,
         CourierShiftStopped::class.java,
-        CourierAdded::class.java
+        CourierAdded::class.java,
+        DeliveryRequested::class.java
     )
 
     @Bean
@@ -163,7 +166,10 @@ class DemoApplication {
 //    }
 }
 
-interface DomainEvent
+interface DomainEvent {
+    val routingKey: String
+        get() = "event"
+}
 
 interface EventPublisher {
     fun publish(events: List<DomainEvent>, topic: String = "default")

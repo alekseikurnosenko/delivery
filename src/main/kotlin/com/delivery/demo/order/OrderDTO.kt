@@ -16,7 +16,7 @@ fun Order.asDTO() = OrderDTO(
     status = status,
     items = items.map { it.asDTO() },
     restaurant = restaurant.asDTO(),
-    courier = courier?.asDTO()
+    courier = delivery?.assignedCourier?.asDTO()
 )
 
 fun OrderItem.asDTO() = OrderItemDTO(

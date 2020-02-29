@@ -1,9 +1,9 @@
 package com.delivery.demo.delivery
 
 data class DeliveryRequestDTO(
-    val deliveryId: String
+    val orderId: String
 )
 
 fun DeliveryRequest.asDTO() = DeliveryRequestDTO(
-    deliveryId = delivery.id.toString()
+    orderId = delivery.order.id.toString()
 )

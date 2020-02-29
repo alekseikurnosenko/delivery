@@ -29,7 +29,7 @@ class OutboxEventPublisher(
             val routingKey = when (it) {
                 is OrderPlaced -> "order.placed"
                 is OrderPaid -> "order.paid"
-                else -> "event"
+                else -> it.routingKey
             }
             val message = messageConverter.toMessage(it, MessageProperties())
             OutboxMessage(

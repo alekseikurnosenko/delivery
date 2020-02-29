@@ -1,21 +1,28 @@
 package com.delivery.demo.delivery
 
-import com.delivery.demo.courier.*
+import com.delivery.demo.EventPublisher
+import com.delivery.demo.courier.Courier
+import com.delivery.demo.courier.CourierLocationRepository
+import com.delivery.demo.courier.CourierRepository
+import com.delivery.demo.courier.LatLng
 import com.delivery.demo.order.Order
+import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.order.OrderStatus
 import org.springframework.amqp.AmqpRejectAndDontRequeueException
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
 
 @Service
 @Transactional
 class DeliveryService(
     val courierRepository: CourierRepository,
     val courierLocationRepository: CourierLocationRepository,
-    val deliveryRepository: DeliveryRepository,
-    val taskScheduler: TaskScheduler
+    val taskScheduler: TaskScheduler,
+    val eventPublisher: EventPublisher,
+    val orderRepository: OrderRepository
 ) {
 
     val requestTimeout: Long = 30 * 1000 // 30 seconds
@@ -31,72 +38,86 @@ class DeliveryService(
      */
 
     fun findCourierForOrder(order: Order) {
-        val delivery = Delivery(order)
-
-        tryRequestCourier(delivery)
-
-        deliveryRepository.save(delivery)
+        tryRequestCourier(order.delivery)
     }
 
     private fun tryRequestCourier(delivery: Delivery) {
         val courier = findCourier(
             pickupLocation = delivery.pickup.location,
-            deliveryLocation = delivery.dropoff.location
+            deliveryLocation = delivery.dropoff.location,
+            couriersToIgnore = delivery.requests.map { it.courier.id }
         )
         if (courier == null) {
             // No more couriers available
             // At this point, we are saying that the order failed
             // TODO: Cancel order
             // Or maybe mark delivery as failed?
+            delivery.order.cancel("No couriers available")
+            // Update order here?
             return
         }
         val request = delivery.requestCourier(courier)
         courier.requestDelivery(request)
+
+        eventPublisher.publish(delivery.events)
+        eventPublisher.publish(courier.events)
+
 
         // Should we keep candidate couriers?
         // Or just get the fresh ones every time? <-- makes more sense
 
         // Schedule a timeout
         // TODO: in-memory only, integrate Quartz instead
-        taskScheduler.scheduleWithFixedDelay({
-            delivery.timeoutRequest(courier)
-            courier.timeoutRequest(delivery)
-        }, requestTimeout)
+//        taskScheduler.schedule({
+//            delivery.order.timeoutDeliveryRequest(courier)
+//            courier.timeoutRequest(delivery)
+//
+//            eventPublisher.publish(delivery.events)
+//            eventPublisher.publish(courier.events)
+//        }, Instant.now().plusSeconds(30))
     }
 
     @RabbitListener(queues = [DeliveryRequestAccepted.queue])
     @Transactional
-    protected fun onDeliveryRequestAccepted(event: DeliveryRequestAccepted) {
-        val delivery = deliveryRepository.findById(event.deliveryId).orElseThrow {
-            AmqpRejectAndDontRequeueException("Unknown Delivery(id=${event.deliveryId})")
+    fun onDeliveryRequestAccepted(event: DeliveryRequestAccepted) {
+        val order = orderRepository.findById(event.orderId).orElseThrow {
+            AmqpRejectAndDontRequeueException("Unknown Order(id=${event.orderId})")
+        }
+        val courier = courierRepository.findById(event.courierId).orElseThrow {
+            AmqpRejectAndDontRequeueException("Unknown Courier(id=${event.courierId})")
         }
 
-        // Indicate that the courier was assigned?
+        order.onAssignedToCourier(courier)
+        eventPublisher.publish(order.events)
     }
 
     @RabbitListener(queues = [DeliveryRequestRejected.queue])
     @Transactional
-    protected fun onDeliveryRequestRejected(event: DeliveryRequestRejected) {
-        val delivery = deliveryRepository.findById(event.deliveryId).orElseThrow {
-            AmqpRejectAndDontRequeueException("Unknown Delivery(id=${event.deliveryId})")
+    fun onDeliveryRequestRejected(event: DeliveryRequestRejected) {
+        val order = orderRepository.findById(event.orderId).orElseThrow {
+            AmqpRejectAndDontRequeueException("Unknown Order(id=${event.orderId})")
         }
 
-        tryRequestCourier(delivery)
+        tryRequestCourier(order.delivery)
     }
 
     @RabbitListener(queues = [DeliveryRequestTimedOut.queue])
     @Transactional
-    protected fun onDeliveryRequestTimedOut(event: DeliveryRequestTimedOut) {
-        val delivery = deliveryRepository.findById(event.deliveryId).orElseThrow {
-            AmqpRejectAndDontRequeueException("Unknown Delivery(id=${event.deliveryId})")
+    fun onDeliveryRequestTimedOut(event: DeliveryRequestTimedOut) {
+        val order = orderRepository.findById(event.orderId).orElseThrow {
+            AmqpRejectAndDontRequeueException("Unknown Order(id=${event.orderId})")
         }
 
-        tryRequestCourier(delivery)
+        tryRequestCourier(order.delivery)
     }
 
 
-    private fun findCourier(pickupLocation: LatLng, deliveryLocation: LatLng): Courier? {
-        // Find the closest courier to the resturant
+    private fun findCourier(
+        pickupLocation: LatLng,
+        deliveryLocation: LatLng,
+        couriersToIgnore: List<UUID>
+    ): Courier? {
+        // Find the closest courier to the restaurant
         // So, it should be the minimum of
         // sum (time to finish current order + time to pickup new + time to drop )
         // NOTE: initial implementation of finding the best possible courier is very slow
@@ -106,6 +127,7 @@ class DeliveryService(
         // Ideally, when we fetch couriers, we have to fetch them together with all orders
         // To reduce amount of database calls
         val candidates = courierLocationRepository.getAll()
+            .filter { (courierId, _) -> !couriersToIgnore.contains(courierId) }
             .sortedBy { (_, location) ->
                 location.latLng.distanceTo(pickupLocation)
             }
@@ -123,7 +145,7 @@ class DeliveryService(
                 val remainingTime = courier.activeOrders.sumByDouble { order ->
                     when (order.status) {
                         OrderStatus.Placed,
-                        OrderStatus.SentToRestaurant,
+                        OrderStatus.Paid,
                         OrderStatus.Preparing,
                         OrderStatus.AwaitingPickup -> {
                             location.latLng.distanceTo(pickupLocation) +

@@ -1,9 +1,7 @@
 package com.delivery.demo.courier
 
-import com.delivery.demo.Address
 import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
-import com.delivery.demo.delivery.Delivery
 import com.delivery.demo.delivery.DeliveryRequest
 import com.delivery.demo.order.Order
 import java.util.*
@@ -47,7 +45,7 @@ class Courier(
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinTable
-    val pendingDeliveryRequests: MutableList<DeliveryRequest> = mutableListOf()
+    val pendingDeliveryRequests: MutableSet<DeliveryRequest> = mutableSetOf()
 
     var onShift: Boolean = onShift
         protected set
@@ -64,46 +62,21 @@ class Courier(
         registerEvent(CourierShiftStopped(id))
     }
 
-    fun assignOrder(order: Order): Order {
-        if (!onShift) {
-            throw Exception("Cannot assign orders to couriers off-shift")
-        }
-        order.assignToCourier(this)
-        activeOrders.add(order)
-        return order
-    }
-
-    // confirmDeliveryPickup
-    // Not part of courier!
-    fun confirmOrderPickup(orderId: UUID): Order {
-        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order: $orderId")
-        order.confirmPickup()
-        return order
-    }
-
-    fun confirmOrderDropoff(orderId: UUID): Order {
-        val order = activeOrders.find { it.id == orderId } ?: throw Exception("Unknown order: $orderId")
-        order.confirmDropoff()
-        activeOrders.remove(order)
-        return order
-    }
-
     fun requestDelivery(deliveryRequest: DeliveryRequest) {
         pendingDeliveryRequests.add(deliveryRequest)
     }
 
-    fun acceptRequest(delivery: Delivery) {
-        pendingDeliveryRequests.removeAll { it.delivery.id == delivery.id }
+    fun onDeliveryRequestRejected(order: Order) {
+        pendingDeliveryRequests.removeAll { it.delivery.order == order }
     }
 
-    fun rejectRequest(delivery: Delivery) {
-        pendingDeliveryRequests.removeAll { it.delivery.id == delivery.id }
+    fun onDeliveryRequestAccepted(order: Order) {
+        pendingDeliveryRequests.removeAll { it.delivery.order == order }
     }
 
-    fun timeoutRequest(delivery: Delivery) {
-        pendingDeliveryRequests.removeAll { it.delivery.id == delivery.id }
+    fun onDeliveryRequestTimedOut(order: Order) {
+        pendingDeliveryRequests.removeAll { it.delivery.order == order }
     }
-
 
     companion object {
         fun new(accountId: String, fullName: String): Courier {
@@ -144,41 +117,3 @@ data class CourierAdded(
     val fullName: String,
     val onShift: Boolean
 ) : DomainEvent
-
-data class DeliveryRequested(
-    val requestId: UUID,
-    val deliveryId: UUID,
-    val courierId: UUID,
-    val pickup: Address,
-    val dropoff: Address
-) : DomainEvent
-
-data class DeliveryRequestAccepted(
-    val requestId: UUID,
-    val deliveryId: UUID,
-    val courierId: UUID
-) : DomainEvent {
-    companion object {
-        const val queue = "deliveryRequest.accepted"
-    }
-}
-
-data class DeliveryRequestRejected(
-    val requestId: UUID,
-    val deliveryId: UUID,
-    val courierId: UUID
-) : DomainEvent {
-    companion object {
-        const val queue = "deliveryRequest.rejected"
-    }
-}
-
-data class DeliveryRequestTimedOut(
-    val requestId: UUID,
-    val deliveryId: UUID,
-    val courierId: UUID
-) : DomainEvent {
-    companion object {
-        const val queue = "deliveryRequest.timed_out"
-    }
-}

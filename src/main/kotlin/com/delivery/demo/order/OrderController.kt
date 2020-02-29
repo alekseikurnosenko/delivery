@@ -2,6 +2,7 @@ package com.delivery.demo.order
 
 import com.delivery.demo.restaurant.ResourceNotFoundException
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -30,3 +31,6 @@ class OrderController(
         return order.asDTO()
     }
 }
+
+@ResponseStatus(value = HttpStatus.NOT_FOUND)
+class UnknownOrderException(orderId: UUID) : Exception("Unknown Order(id=$orderId)")

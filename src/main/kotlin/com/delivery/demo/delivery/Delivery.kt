@@ -2,12 +2,14 @@ package com.delivery.demo.delivery
 
 import com.delivery.demo.Address
 import com.delivery.demo.Aggregate
-import com.delivery.demo.courier.*
+import com.delivery.demo.DomainEvent
+import com.delivery.demo.courier.Courier
 import com.delivery.demo.order.Order
+import java.util.*
 import javax.persistence.*
 
 /**
- * Aka "CourierOrder"
+ * Entity within Order aggregate root
  */
 @Entity
 @Table(name = "deliveries")
@@ -32,6 +34,7 @@ class Delivery(
     var requests: MutableList<DeliveryRequest> = mutableListOf()
         protected set
 
+    @Enumerated(EnumType.STRING)
     var status: DeliveryStatus = DeliveryStatus.Pending
         protected set
 
@@ -54,8 +57,7 @@ class Delivery(
 
         registerEvent(
             DeliveryRequested(
-                requestId = request.id,
-                deliveryId = id,
+                orderId = order.id,
                 courierId = courier.id,
                 pickup = pickup,
                 dropoff = dropoff
@@ -64,12 +66,6 @@ class Delivery(
         return request
     }
 
-    /**
-     * The good:
-     * DeliveryRequests are owned by Delivery
-     * The weird:
-     * Delivery handles both "dispatching" part and actual delivery
-     */
     fun acceptRequestAsCourier(courier: Courier) {
         // Invariant can accept only requests that were requested
         val request = requests.find { it.courier == courier }
@@ -85,16 +81,17 @@ class Delivery(
             return
         }
 
+        // TODO: check timeout
+
         request.accept()
         registerEvent(
             DeliveryRequestAccepted(
-                requestId = request.id,
-                deliveryId = id,
+                orderId = order.id,
                 courierId = courier.id
             )
         )
 
-        // Duplicate? We already have acceptedCourier?
+        // Duplicate? We already have request that was accepted?
         assignedCourier = courier
 
         // TODO: consider revoking all other pending requests in case of asking multiple couriers at the same time?
@@ -115,8 +112,7 @@ class Delivery(
         request.reject()
         registerEvent(
             DeliveryRequestRejected(
-                requestId = request.id,
-                deliveryId = id,
+                orderId = order.id,
                 courierId = courier.id
             )
         )
@@ -134,25 +130,11 @@ class Delivery(
         request.timeout()
         registerEvent(
             DeliveryRequestTimedOut(
-                requestId = request.id,
-                deliveryId = id,
+                orderId = order.id,
                 courierId = courier.id
             )
         )
     }
-
-    fun confirmPickupAsCourier(courier: Courier) {
-        if (assignedCourier != courier) {
-            throw Exception("Delivery(id=$id) does not belong to Courier(id=${courier.id})")
-        }
-
-        status = DeliveryStatus.OrderPickedUp
-
-//        registerEvent(
-//            DeliveryPickedUp()
-//        )
-    }
-
 }
 
 
@@ -160,44 +142,42 @@ enum class DeliveryStatus {
     Pending,
     WaitingForCourierConfirmation,
     CourierConfirmed,
-    OrderPickedUp,
-    OrderDelivered,
     Failed
 }
 
+data class DeliveryRequested(
+    val orderId: UUID,
+    val courierId: UUID,
+    val pickup: Address,
+    val dropoff: Address
+) : DomainEvent
 
-@Entity
-@Table(name = "delivery_requests")
-class DeliveryRequest(
-    @ManyToOne
-    @JoinColumn(name = "courier_id")
-    val courier: Courier,
-    @ManyToOne
-    @JoinColumn(name = "delivery_id")
-    val delivery: Delivery
-) : Aggregate() {
-
-    var status: DeliveryRequestStatus = DeliveryRequestStatus.Requested
-        protected set
-
-    fun accept() {
-        status = DeliveryRequestStatus.Accepted
-        // TODO events?
-    }
-
-    fun reject() {
-        status = DeliveryRequestStatus.Rejected
-        // TODO events?
-    }
-
-    fun timeout() {
-        status = DeliveryRequestStatus.TimedOut
+data class DeliveryRequestAccepted(
+    val orderId: UUID,
+    val courierId: UUID,
+    override val routingKey: String = queue
+) : DomainEvent {
+    companion object {
+        const val queue = "deliveryRequest.accepted"
     }
 }
 
-enum class DeliveryRequestStatus {
-    Requested,
-    Accepted,
-    Rejected,
-    TimedOut
+data class DeliveryRequestRejected(
+    val orderId: UUID,
+    val courierId: UUID,
+    override val routingKey: String = queue
+) : DomainEvent {
+    companion object {
+        const val queue = "deliveryRequest.rejected"
+    }
+}
+
+data class DeliveryRequestTimedOut(
+    val orderId: UUID,
+    val courierId: UUID,
+    override val routingKey: String = queue
+) : DomainEvent {
+    companion object {
+        const val queue = "deliveryRequest.timed_out"
+    }
 }

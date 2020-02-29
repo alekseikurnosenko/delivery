@@ -3,18 +3,20 @@ package com.delivery.demo.courier
 import com.auth0.spring.security.api.authentication.AuthenticationJsonWebToken
 import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
-import com.delivery.demo.delivery.DeliveryDTO
-import com.delivery.demo.delivery.DeliveryRepository
 import com.delivery.demo.delivery.DeliveryRequestDTO
 import com.delivery.demo.delivery.asDTO
 import com.delivery.demo.order.OrderDTO
+import com.delivery.demo.order.OrderRepository
+import com.delivery.demo.order.UnknownOrderException
 import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.retry.annotation.Retryable
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.*
+import javax.persistence.OptimisticLockException
 
 @RestController
 @CrossOrigin
@@ -27,7 +29,7 @@ class CourierController(
     val courierRepository: CourierRepository,
     val eventPublisher: EventPublisher,
     val courierLocationRepository: CourierLocationRepository,
-    val deliveryRepository: DeliveryRepository
+    val orderRepository: OrderRepository
 ) {
 
     @PostMapping("")
@@ -73,70 +75,57 @@ class CourierController(
     }
 
     @Transactional
-    @PostMapping("/{courierId}/requests/{deliveryId}/accept")
+    @PostMapping("/{courierId}/requests/{orderId}/accept")
     fun acceptDeliveryRequest(
-        @PathVariable("courierId", required = true) courierId: UUID,
-        @PathVariable("deliveryId", required = true) deliveryId: UUID
-    ) {
-        val courier = courierRepository.findById(courierId)
-            .orElseThrow { Exception("Unknown courierId: $courierId") }
-        val delivery = deliveryRepository.findById(deliveryId)
-            .orElseThrow { Exception("Unknown Delivery(id=$deliveryId") }
-
-        delivery.acceptRequestAsCourier(courier)
-        courier.acceptRequest(delivery)
-
-        eventPublisher.publish(delivery.events)
-    }
-
-    @Transactional
-    @PostMapping("/{courierId}/requests/{deliveryId}/reject")
-    fun rejectDeliveryRequest(
-        @PathVariable("courierId", required = true) courierId: UUID,
-        @PathVariable("deliveryId", required = true) deliveryId: UUID
-    ) {
-        val courier = courierRepository.findById(courierId)
-            .orElseThrow { Exception("Unknown courierId: $courierId") }
-        val delivery = deliveryRepository.findById(deliveryId)
-            .orElseThrow { Exception("Unknown Delivery(id=$deliveryId") }
-
-        delivery.rejectRequestAsCourier(courier)
-        courier.rejectRequest(delivery)
-
-        eventPublisher.publish(delivery.events)
-    }
-
-    @Transactional
-    @PostMapping("/{courierId}/orders/{orderId}/confirmPickup")
-    fun confirmPickup(
         @PathVariable("courierId", required = true) courierId: UUID,
         @PathVariable("orderId", required = true) orderId: UUID
     ): OrderDTO {
         val courier = courierRepository.findById(courierId)
-            .orElseThrow { Exception("Unknown courierId: $courierId") }
+            .orElseThrow { CourierNotFoundException(courierId) }
+        val order = orderRepository.findById(orderId)
+            .orElseThrow { UnknownOrderException(orderId) }
 
-        val order = courier.confirmOrderPickup(orderId)
+        order.acceptDeliveryRequest(courier)
+        courier.onDeliveryRequestAccepted(order)
+
         eventPublisher.publish(order.events)
+        return order.asDTO()
+    }
 
+    @Retryable(include = [OptimisticLockException::class], maxAttempts = 3)
+    @Transactional
+    @PostMapping("/{courierId}/requests/{orderId}/reject")
+    fun rejectDeliveryRequest(
+        @PathVariable("courierId", required = true) courierId: UUID,
+        @PathVariable("orderId", required = true) orderId: UUID
+    ): OrderDTO {
+        val courier = courierRepository.findById(courierId)
+            .orElseThrow { CourierNotFoundException(courierId) }
+        val order = orderRepository.findById(orderId)
+            .orElseThrow { UnknownOrderException(orderId) }
+
+        order.rejectDeliveryRequest(courier)
+        courier.onDeliveryRequestRejected(order)
+
+        eventPublisher.publish(order.events)
         return order.asDTO()
     }
 
     @Transactional
-    @PostMapping("/{courierId}/deliveries/{deliveryId}/confirmPickup")
-    fun confirmDeliveryPickup(
+    @PostMapping("/{courierId}/orders/{orderId}/confirmPickup")
+    fun confirmOrderPickup(
         @PathVariable("courierId", required = true) courierId: UUID,
-        @PathVariable("deliveryId", required = true) deliveryId: UUID
-    ): DeliveryDTO {
+        @PathVariable("orderId", required = true) orderId: UUID
+    ): OrderDTO {
         val courier = courierRepository.findById(courierId)
-            .orElseThrow { Exception("Unknown courierId: $courierId") }
-        val delivery = deliveryRepository.findById(deliveryId)
-            .orElseThrow { Exception("Unknown Delivery(id=$deliveryId") }
+            .orElseThrow { CourierNotFoundException(courierId) }
+        val order = orderRepository.findById(orderId)
+            .orElseThrow { UnknownOrderException(orderId) }
 
-        delivery.confirmPickupAsCourier(courier)
+        order.confirmPickup(courier)
 
-        eventPublisher.publish(delivery.events)
-
-        return delivery.asDTO()
+        eventPublisher.publish(order.events)
+        return order.asDTO()
     }
 
     @Transactional
@@ -146,11 +135,13 @@ class CourierController(
         @PathVariable("orderId", required = true) orderId: UUID
     ): OrderDTO {
         val courier = courierRepository.findById(courierId)
-            .orElseThrow { Exception("Unknown courierId: $courierId") }
+            .orElseThrow { CourierNotFoundException(courierId) }
+        val order = orderRepository.findById(orderId)
+            .orElseThrow { UnknownOrderException(orderId) }
 
-        val order = courier.confirmOrderDropoff(orderId)
+        order.confirmDropoff(courier)
+
         eventPublisher.publish(order.events)
-
         return order.asDTO()
     }
 
@@ -161,6 +152,7 @@ class CourierController(
     ) {
         courierLocationRepository.updateLocation(courierId, LocationReport(input.latLng, Date()))
         val event = CourierLocationUpdated(courierId, input.latLng)
+
         eventPublisher.publish(listOf(event))
     }
 
@@ -170,9 +162,11 @@ class CourierController(
         @PathVariable("courierId", required = true) courierId: UUID
     ): CourierDTO {
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
+
         courier.startShift()
+
         eventPublisher.publish(courier.events)
-        return courierRepository.save(courier).asDTO(withOrders = true)
+        return courier.asDTO(withOrders = true)
     }
 
     @PostMapping("/{courierId}/stopShift")
@@ -181,9 +175,11 @@ class CourierController(
         @PathVariable("courierId", required = true) courierId: UUID
     ): CourierDTO {
         val courier = courierRepository.findById(courierId).orElseThrow { Exception("Unknown courierId: $courierId") }
+
         courier.stopShift()
+
         eventPublisher.publish(courier.events)
-        return courierRepository.save(courier).asDTO(withOrders = true)
+        return courier.asDTO(withOrders = true)
     }
 
 }

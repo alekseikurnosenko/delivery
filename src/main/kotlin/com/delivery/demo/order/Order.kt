@@ -5,6 +5,7 @@ import com.delivery.demo.Aggregate
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.courier.Courier
+import com.delivery.demo.delivery.Delivery
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -30,9 +31,8 @@ class Order constructor(
     @JoinColumn(name = "restaurant_id")
     val restaurant: Restaurant = restaurant
 
-    @ManyToOne
-    @JoinColumn(name = "courier_id")
-    var courier: Courier? = null
+    @OneToOne(mappedBy = "order", cascade = [CascadeType.ALL])
+    lateinit var delivery: Delivery
         protected set
 
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
@@ -52,7 +52,7 @@ class Order constructor(
             // Idempotent
             return
         }
-        if (status == OrderStatus.SentToRestaurant) {
+        if (status == OrderStatus.Paid) {
             status = OrderStatus.Preparing
             registerEvent(OrderPreparationStarted(id, status))
             return
@@ -75,8 +75,7 @@ class Order constructor(
         throw Exception("Cannot finish preparing Order(id=$id), order is $status")
     }
 
-    fun assignToCourier(courier: Courier) {
-        this.courier = courier
+    fun onAssignedToCourier(courier: Courier) {
         val event = OrderAssigned(
             orderId = id,
             courierId = courier.id,
@@ -90,20 +89,26 @@ class Order constructor(
         registerEvent(event)
     }
 
-    fun confirmPickup() {
+    fun confirmPickup(courier: Courier) {
+        if (delivery.assignedCourier != courier) {
+            throw Exception("$this is not assigned to $courier")
+        }
         status = OrderStatus.InDelivery
 
         registerEvent(OrderPickedUp(id, status))
     }
 
-    fun confirmDropoff() {
+    fun confirmDropoff(courier: Courier) {
+        if (delivery.assignedCourier != courier) {
+            throw Exception("$this is not assigned to $courier")
+        }
         status = OrderStatus.Delivered
 
         registerEvent(OrderDelivered(id, status))
     }
 
     fun confirmPaid() {
-        status = OrderStatus.SentToRestaurant // ?? makes no sense, right?
+        status = OrderStatus.Paid
 
         registerEvent(
             OrderPaid(
@@ -130,6 +135,21 @@ class Order constructor(
         )
     }
 
+    fun acceptDeliveryRequest(courier: Courier) {
+        delivery.acceptRequestAsCourier(courier) ?: throw Exception("$this doesn't have a scheduled delivery")
+    }
+
+    fun rejectDeliveryRequest(courier: Courier) {
+        delivery.rejectRequestAsCourier(courier) ?: throw Exception("$this doesn't have a scheduled delivery")
+    }
+
+    fun timeoutDeliveryRequest(courier: Courier) {
+        delivery.timeoutRequest(courier)
+    }
+
+    override val events: List<DomainEvent>
+        get() = super.events + (delivery.events ?: listOf())
+
     companion object {
         fun place(
             userId: String,
@@ -143,6 +163,7 @@ class Order constructor(
                 deliveryAddress = deliveryAddress,
                 items = items
             )
+            order.delivery = Delivery(order)
 
             // Do we also need to include all items here?
             // Or like, whole Order object?
@@ -185,7 +206,7 @@ data class OrderItem(
 enum class OrderStatus {
     Canceled,
     Placed, // Restaurant has received the order
-    SentToRestaurant, // ?
+    Paid, // ?
     Preparing, // Restaurant has started preparing the order
     AwaitingPickup, // Restaurant has finsihed preparing and is awaiting courier arrival
     InDelivery, // Courier has picked up an order and is on the way to client
@@ -202,7 +223,7 @@ data class OrderPreparationFinished(
     val status: OrderStatus
 ) : DomainEvent
 
-data class OrderCreated(
+data class OrderCreated( //?
     val userId: String,
     val orderId: UUID,
     val restaurantId: UUID,

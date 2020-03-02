@@ -3,6 +3,7 @@ package com.delivery.demo.courier
 import com.auth0.spring.security.api.authentication.AuthenticationJsonWebToken
 import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
+import com.delivery.demo.OptimisticRetryable
 import com.delivery.demo.delivery.DeliveryRequestDTO
 import com.delivery.demo.delivery.asDTO
 import com.delivery.demo.order.OrderDTO
@@ -12,11 +13,9 @@ import com.delivery.demo.order.asDTO
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.retry.annotation.Retryable
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.*
-import javax.persistence.OptimisticLockException
 
 @RestController
 @CrossOrigin
@@ -32,6 +31,8 @@ class CourierController(
     val orderRepository: OrderRepository
 ) {
 
+    @OptimisticRetryable
+    @Transactional
     @PostMapping("")
     fun createCourier(
         @RequestBody input: CreateCourierInput,
@@ -74,6 +75,7 @@ class CourierController(
         return courier.pendingDeliveryRequests.map { it.asDTO() }
     }
 
+    @OptimisticRetryable
     @Transactional
     @PostMapping("/{courierId}/requests/{orderId}/accept")
     fun acceptDeliveryRequest(
@@ -92,7 +94,7 @@ class CourierController(
         return order.asDTO()
     }
 
-    @Retryable(include = [OptimisticLockException::class], maxAttempts = 3)
+    @OptimisticRetryable
     @Transactional
     @PostMapping("/{courierId}/requests/{orderId}/reject")
     fun rejectDeliveryRequest(
@@ -111,6 +113,7 @@ class CourierController(
         return order.asDTO()
     }
 
+    @OptimisticRetryable
     @Transactional
     @PostMapping("/{courierId}/orders/{orderId}/confirmPickup")
     fun confirmOrderPickup(
@@ -128,6 +131,7 @@ class CourierController(
         return order.asDTO()
     }
 
+    @OptimisticRetryable
     @Transactional
     @PostMapping("/{courierId}/orders/{orderId}/confirmDropoff")
     fun confirmDropoff(
@@ -156,8 +160,9 @@ class CourierController(
         eventPublisher.publish(listOf(event))
     }
 
-    @PostMapping("/{courierId}/startShift")
+    @OptimisticRetryable
     @Transactional
+    @PostMapping("/{courierId}/startShift")
     fun startShift(
         @PathVariable("courierId", required = true) courierId: UUID
     ): CourierDTO {
@@ -169,8 +174,9 @@ class CourierController(
         return courier.asDTO(withOrders = true)
     }
 
-    @PostMapping("/{courierId}/stopShift")
+    @OptimisticRetryable
     @Transactional
+    @PostMapping("/{courierId}/stopShift")
     fun stopShift(
         @PathVariable("courierId", required = true) courierId: UUID
     ): CourierDTO {

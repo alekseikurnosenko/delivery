@@ -136,11 +136,11 @@ class Order constructor(
     }
 
     fun acceptDeliveryRequest(courier: Courier) {
-        delivery.acceptRequestAsCourier(courier) ?: throw Exception("$this doesn't have a scheduled delivery")
+        delivery.acceptRequestAsCourier(courier)
     }
 
     fun rejectDeliveryRequest(courier: Courier) {
-        delivery.rejectRequestAsCourier(courier) ?: throw Exception("$this doesn't have a scheduled delivery")
+        delivery.rejectRequestAsCourier(courier)
     }
 
     fun timeoutDeliveryRequest(courier: Courier) {

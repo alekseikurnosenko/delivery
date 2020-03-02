@@ -39,6 +39,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.http.MediaType
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
+import org.springframework.retry.annotation.EnableRetry
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler
@@ -100,6 +101,7 @@ fun main(args: Array<String>) {
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 @EntityScan(basePackages = ["com.delivery"])
 @EnableScheduling
+@EnableRetry
 class DemoApplication {
 
     @Bean("auditorAware")

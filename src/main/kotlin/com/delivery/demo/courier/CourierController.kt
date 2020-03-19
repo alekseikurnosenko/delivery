@@ -188,7 +188,20 @@ class CourierController(
         return courier.asDTO(withOrders = true)
     }
 
+    @GetMapping("/statistics")
+    fun statistics(): CourierStatistics {
+        return CourierStatistics(
+            registered = courierRepository.count().toInt(),
+            online = courierRepository.countByOnShift(true).toInt()
+        )
+    }
+
 }
+
+data class CourierStatistics(
+    val registered: Int,
+    val online: Int
+)
 
 data class CreateCourierInput(
     val name: String
@@ -196,20 +209,6 @@ data class CreateCourierInput(
 
 data class UpdateLocationInput(
     val latLng: LatLng
-)
-
-//fun CourierOrder.asDTO(withOrders = true) = CourierOrderDTO(
-//    orderId = order.id.toString(),
-//    restaurantName = order.restaurant.name,
-//    pickupAddress = order.restaurant.address,
-//    deliveryAddress = order.deliveryAddress
-//)
-
-data class CourierOrderDTO(
-    val orderId: String,
-    val restaurantName: String,
-    val pickupAddress: Address,
-    val deliveryAddress: Address
 )
 
 @ResponseStatus(value = HttpStatus.NOT_FOUND)

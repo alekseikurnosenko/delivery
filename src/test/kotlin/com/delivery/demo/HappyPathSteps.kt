@@ -172,7 +172,7 @@ class HappyPathSteps : En {
         Given("^\"(.+)\" updated his location to be near \"(.+)\"") { courierName: String, locationName: String ->
             val courierId = world.couriers.getValue(courierName)
             val input = UpdateLocationInput(locationMap.getValue(locationName))
-            restTemplate.postForObject<CourierDTO>(api("/couriers/$courierId/location"), input)
+            restTemplate.postForObject<Void?>(api("/couriers/$courierId/location"), input)
         }
         Then("^\"(.+)\" is assigned to deliver this order") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
@@ -233,6 +233,10 @@ class HappyPathSteps : En {
             val address = Address(locationMap.getValue(locationName), "Fake", "Fake", "Fake")
             restTemplate.postForObject<Profile>(api("/profile/address"), address)
 
+        }
+        When("user sets valid payment method") {
+            val input = mapOf("paymentMethodId" to "PAYMENT_METHOD_SUCCESS")
+            restTemplate.postForObject(api("/profile/payment_method"), input)
         }
     }
 

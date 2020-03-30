@@ -15,6 +15,7 @@ Feature: HappyPath
   Scenario: User orders a delivery
     Given A signed-in user
     And user sets their address to be near "PointA"
+    And user sets valid payment method
     And user's basket is empty
 
     When user browses list of restaurants
@@ -41,7 +42,3 @@ Feature: HappyPath
 
     When "Mike" confirm order dropoff
     And user can see their order as "delivered"
-
-  Scenario: Some other one
-    Given A signed-in user
-    And user's basket is empty

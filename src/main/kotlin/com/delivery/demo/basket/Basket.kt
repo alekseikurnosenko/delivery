@@ -77,10 +77,6 @@ class Basket(
 //        status = WaitingForPayment.
 
     }
-
-    override fun toString(): String {
-        return "${Basket::class.java.simpleName}(id=$id)"
-    }
 }
 
 @Entity

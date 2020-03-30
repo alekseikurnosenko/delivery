@@ -13,6 +13,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.util.*
 
 @Service
@@ -25,7 +26,7 @@ class DeliveryService(
     val orderRepository: OrderRepository
 ) {
 
-    val requestTimeout: Long = 30 * 1000 // 30 seconds
+    val requestTimeoutSeconds: Long = 30 // 30 seconds
 
     /**
      * So, I envision this service to be the one finding candidate couriers and asking them.
@@ -50,10 +51,9 @@ class DeliveryService(
         if (courier == null) {
             // No more couriers available
             // At this point, we are saying that the order failed
-            // TODO: Cancel order
             // Or maybe mark delivery as failed?
             delivery.order.cancel("No couriers available")
-            // Update order here?
+            eventPublisher.publish(delivery.order.events)
             return
         }
         val request = delivery.requestCourier(courier)
@@ -68,13 +68,21 @@ class DeliveryService(
 
         // Schedule a timeout
         // TODO: in-memory only, integrate Quartz instead
-//        taskScheduler.schedule({
-//            delivery.order.timeoutDeliveryRequest(courier)
-//            courier.timeoutRequest(delivery)
-//
-//            eventPublisher.publish(delivery.events)
-//            eventPublisher.publish(courier.events)
-//        }, Instant.now().plusSeconds(30))
+        taskScheduler.schedule({
+            // Not transactional because Spring magic again!
+            handleTimeout(delivery.order.id, courier.id)
+        }, Instant.now().plusSeconds(requestTimeoutSeconds))
+    }
+
+    @Transactional
+    fun handleTimeout(orderId: UUID, courierId: UUID) {
+        val order = orderRepository.findById(orderId).get()
+        val courier = courierRepository.findById(courierId).get()
+        order.timeoutDeliveryRequest(courier)
+        courier.onDeliveryRequestTimedOut(order)
+
+        eventPublisher.publish(order.events)
+        eventPublisher.publish(courier.events)
     }
 
     @RabbitListener(queues = [DeliveryRequestAccepted.queue])
@@ -110,7 +118,6 @@ class DeliveryService(
 
         tryRequestCourier(order.delivery)
     }
-
 
     private fun findCourier(
         pickupLocation: LatLng,

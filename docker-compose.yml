@@ -11,6 +11,18 @@ services:
     volumes:
       - 'rabbitmq_data:/rabbitmq'
 
+  postgres:
+    image: 'postgres:12-alpine'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=delivery
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+
 volumes:
+  pg_data:
   rabbitmq_data:
     driver: local

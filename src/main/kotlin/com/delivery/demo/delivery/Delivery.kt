@@ -73,7 +73,7 @@ class Delivery(
 
         // Invariant: cannot accept rejected/timed out requests
         if (request.status != DeliveryRequestStatus.Requested) {
-            throw Exception("$this cannot accepted the request because it is ${request.status}")
+            throw Exception("$this cannot accept the request because it is ${request.status}")
         }
 
         // Idempotence

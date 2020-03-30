@@ -1,5 +1,6 @@
-package com.delivery.demo
+package com.delivery.demo.notification
 
+import com.delivery.demo.DomainEvent
 import com.delivery.demo.courier.CourierAdded
 import com.delivery.demo.courier.CourierLocationUpdated
 import com.delivery.demo.delivery.DeliveryRequested

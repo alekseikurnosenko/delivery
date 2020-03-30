@@ -6,6 +6,7 @@ import com.delivery.demo.courier.CourierDTO
 import com.delivery.demo.courier.CreateCourierInput
 import com.delivery.demo.courier.LatLng
 import com.delivery.demo.courier.UpdateLocationInput
+import com.delivery.demo.notification.WebSocketMessage
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.OrderPreparationFinished
 import com.delivery.demo.order.OrderPreparationStarted

@@ -101,9 +101,8 @@ class Delivery(
         val request = requests.find { it.courier == courier }
             ?: throw Exception("$this wasn't requested from $courier")
 
-        // Invariant: cannot accept rejected/timed out requests
         if (request.status != DeliveryRequestStatus.Requested) {
-            throw Exception("$this cannot accepted the request because it is ${request.status}")
+            return // Courier doesn't care about result
         }
         if (request.status == DeliveryRequestStatus.Rejected) {
             return // Idempotence

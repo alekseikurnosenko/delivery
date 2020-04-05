@@ -13,17 +13,19 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.util.*
 
 @Service
 @Transactional
 class DeliveryService(
-    val courierRepository: CourierRepository,
-    val courierLocationRepository: CourierLocationRepository,
-    val taskScheduler: TaskScheduler,
-    val eventPublisher: EventPublisher,
-    val orderRepository: OrderRepository
+        val courierRepository: CourierRepository,
+        val courierLocationRepository: CourierLocationRepository,
+        val taskScheduler: TaskScheduler,
+        val eventPublisher: EventPublisher,
+        val orderRepository: OrderRepository,
+        val transactionTemplate: TransactionTemplate
 ) {
 
     val requestTimeoutSeconds: Long = 30 // 30 seconds
@@ -69,8 +71,9 @@ class DeliveryService(
         // Schedule a timeout
         // TODO: in-memory only, integrate Quartz instead
         taskScheduler.schedule({
-            // Not transactional because Spring magic again!
-            handleTimeout(delivery.order.id, courier.id)
+            transactionTemplate.executeWithoutResult {
+                handleTimeout(delivery.order.id, courier.id)
+            }
         }, Instant.now().plusSeconds(requestTimeoutSeconds))
     }
 

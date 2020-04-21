@@ -14,10 +14,6 @@ spring:
         use_sql_comments: false
         format_sql: false
   rabbitmq:
-    host: "localhost"
-    port: 5672
-    username: "guest"
-    password: "guest"
     listener:
       simple:
         retry:

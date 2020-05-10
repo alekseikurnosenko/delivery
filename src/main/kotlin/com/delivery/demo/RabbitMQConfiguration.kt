@@ -22,11 +22,10 @@ interface Routable {
 class RabbitMQConfiguration {
 
     @Bean
-    fun connectionFactory(factory: CachingConnectionFactory): ConnectionFactory {
+    fun connectionFactory(): ConnectionFactory {
         val uri = System.getenv("CLOUDAMQP_URL") ?: "amqp://guest:guest@localhost"
 
-        factory.setUri(uri)
-        return factory
+        return CachingConnectionFactory(uri)
     }
 
     @Bean

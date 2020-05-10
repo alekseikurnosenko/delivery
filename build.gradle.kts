@@ -51,6 +51,10 @@ dependencies {
     implementation("com.auth0:auth0-spring-security-api:1.2.6")
     implementation("org.joda:joda-money:1.0.1")
 
+
+    // If you intend to deploy the app to Heroku
+    implementation("org.springframework.cloud:spring-cloud-heroku-connector:2.0.7.RELEASE")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {

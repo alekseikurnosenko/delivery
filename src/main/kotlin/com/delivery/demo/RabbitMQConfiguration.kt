@@ -6,6 +6,7 @@ import com.delivery.demo.delivery.DeliveryRequestTimedOut
 import com.delivery.demo.order.OrderPlaced
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.amqp.core.*
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
 import org.springframework.amqp.rabbit.core.RabbitAdmin
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
@@ -19,6 +20,14 @@ interface Routable {
 
 @Configuration
 class RabbitMQConfiguration {
+
+    @Bean
+    fun connectionFactory(factory: CachingConnectionFactory): ConnectionFactory {
+        val uri = System.getenv("CLOUDAMQP_URL") ?: "amqp://guest:guest@localhost"
+
+        factory.setUri(uri)
+        return factory
+    }
 
     @Bean
     fun amqpAdmin(connectionFactory: ConnectionFactory): AmqpAdmin {

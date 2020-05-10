@@ -23,7 +23,7 @@ import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
 import org.slf4j.LoggerFactory
-import org.springdoc.api.OpenApiCustomiser
+import org.springdoc.core.customizers.OpenApiCustomiser
 import org.springframework.amqp.core.TopicExchange
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Qualifier

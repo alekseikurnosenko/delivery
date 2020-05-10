@@ -13,6 +13,7 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.net.URI
 
 interface Routable {
     val routingKey: String
@@ -25,7 +26,7 @@ class RabbitMQConfiguration {
     fun connectionFactory(): ConnectionFactory {
         val uri = System.getenv("CLOUDAMQP_URL") ?: "amqp://guest:guest@localhost"
 
-        return CachingConnectionFactory(uri)
+        return CachingConnectionFactory(URI.create(uri))
     }
 
     @Bean

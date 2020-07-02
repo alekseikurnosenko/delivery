@@ -32,7 +32,10 @@ logging:
   level:
     datadog: DEBUG
     com:
-      auth0: WARN
+      auth0: DEBUG
+    org:
+      springframework:
+        security: DEBUG
 #    org:
 #      hibernate:
 #        SQL: DEBUG

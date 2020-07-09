@@ -1,11 +1,12 @@
 package com.delivery.demo
 
-import com.delivery.demo.basket.BasketRepository
-import com.delivery.demo.courier.*
+import com.delivery.demo.courier.CourierAdded
+import com.delivery.demo.courier.CourierLocationUpdated
+import com.delivery.demo.courier.CourierShiftStarted
+import com.delivery.demo.courier.CourierShiftStopped
 import com.delivery.demo.delivery.DeliveryRequested
 import com.delivery.demo.order.*
 import com.delivery.demo.restaurant.RestaurantAdded
-import com.delivery.demo.restaurant.RestaurantRepository
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
@@ -22,13 +23,8 @@ import io.swagger.v3.oas.models.security.SecurityScheme
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
-import org.slf4j.LoggerFactory
 import org.springdoc.core.customizers.OpenApiCustomiser
-import org.springframework.amqp.core.TopicExchange
-import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.boot.ApplicationArguments
-import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.runApplication
@@ -47,50 +43,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.util.*
-
-
-@Component
-class RestaurantsApplication(
-    val restaurantRepository: RestaurantRepository,
-    val courierRepository: CourierRepository,
-    val basketRepository: BasketRepository
-) : ApplicationRunner {
-
-    override fun run(args: ApplicationArguments?) {
-//        val bg = Restaurant(
-//            id = UUID.randomUUID(),
-//            name = "Burger King",
-//            address = Address(LatLng(0.0f, 0.0f), "address", "city", "country"),
-//            currency = CurrencyUnit.EUR
-//        )
-//        bg.addDish(name = "Whopper", price = Money.of(CurrencyUnit.EUR, 5.50))
-//        bg.addDish(name = "Fries", price = Money.of(CurrencyUnit.EUR, 1.50))
-//
-//        restaurantRepository.save(bg)
-//
-//        val donerPlace = Restaurant(
-//            id = UUID.randomUUID(),
-//            name = "Döner place",
-//            address = Address(LatLng(10.0f, 10.0f),"Street 2", "City", "Country"),
-//            currency = CurrencyUnit.EUR
-//        )
-//        donerPlace.addDish(name = "Döner", price = Money.of(CurrencyUnit.EUR, 4.50))
-//        donerPlace.addDish(name = "Kebap", price = Money.of(CurrencyUnit.EUR, 3.50))
-//        restaurantRepository.save(donerPlace)
-//
-//        val jake = Courier(
-//            fullName = "Jake Jakeson",
-//            location = LocationReport(LatLng(0.0f, 0.0f), Date()),
-//            onShift = true
-//        )
-//        courierRepository.save(jake)
-//
-//        val basket = donerPlace.newBasket("Jake")
-//        val savedBasket = basketRepository.save(basket)
-//        savedBasket.addItem(donerPlace.dishes[0], 1)
-    }
-
-}
 
 fun main(args: Array<String>) {
     runApplication<DemoApplication>(*args)
@@ -189,140 +141,6 @@ interface EventSubscriber {
 interface Subscription {
     fun unsubscribe()
 }
-
-@Component
-class TestSubscriber(
-    private val template: RabbitTemplate,
-    private val exchange: TopicExchange
-) {
-
-    val logger = LoggerFactory.getLogger(TestSubscriber::class.java)
-
-//    @Bean
-//    fun eventPublisher(): EventPublisher {
-//        return object : EventPublisher {
-//            override fun publish(events: List<DomainEvent>, topic: String) {
-//                events.forEach {
-//                    val routingKey = when (it) {
-//                        is OrderPlaced -> "order.placed"
-//                        is OrderPaid -> "order.paid"
-//                        else -> "event"
-//                    }
-//                    template.convertAndSend(exchange.name, routingKey, it)
-//                }
-//            }
-//        }
-//    }
-
-//    @Bean
-//    fun eventSubscriber(): EventSubscriber {
-//        return object : EventSubscriber {
-//            override fun <T : DomainEvent> subscribe(
-//                eventType: Class<T>,
-//                topic: String,
-//                handler: (T) -> Unit
-//            ): Subscription {
-//                return object : Subscription {
-//                    override fun unsubscribe() {
-//
-//                    }
-//                }
-//            }
-//
-//            override fun <T : DomainEvent> subscribeAll(
-//                eventTypes: List<Class<out T>>,
-//                topic: String,
-//                handler: (T) -> Unit
-//            ): Subscription {
-//                return object : Subscription {
-//                    override fun unsubscribe() {
-//
-//                    }
-//                }
-//            }
-//
-//        }
-//    }
-}
-
-//
-//@Configuration
-//class AbstractTramEventTestConfiguration(
-//    private val meterRegistry: MeterRegistry
-//) {
-//
-//    data class Envelope(
-//        val topic: String,
-//        val events: DomainEvent
-//    )
-//
-//    private val eventsQueue = LinkedBlockingQueue<Envelope>()
-//    private val subscribers = ConcurrentLinkedDeque<Pair<Pair<String, Class<out DomainEvent>>, (DomainEvent) -> Unit>>()
-//    private val EVENT_TYPE_HEADER = "event_type"
-//
-//    init {
-//        Gauge.builder("events.queue.length") { eventsQueue.size }
-//            .register(meterRegistry)
-//
-//        Thread {
-//            while (true) {
-//                val (topic, event) = eventsQueue.take()
-//                val key = topic to event::class.java
-//                subscribers.filter { it.first == key }.forEach { it.second(event) }
-//            }
-//        }.start()
-//    }
-//
-//    @Bean
-//    fun eventPublisher(objectMapper: ObjectMapper): EventPublisher {
-//        return object : EventPublisher {
-//            override fun publish(events: List<DomainEvent>, topic: String) {
-//                events.forEach {
-//                    eventsQueue.offer(Envelope(topic, it))
-//                }
-//            }
-//        }
-//    }
-//
-//    @Bean
-//    fun eventSubscriber(objectMapper: ObjectMapper): EventSubscriber {
-//        val subscriberId = UUID.randomUUID().toString()
-//        return object : EventSubscriber {
-//            override fun <T : DomainEvent> subscribeAll(
-//                eventTypes: List<Class<out T>>,
-//                topic: String,
-//                handler: (T) -> Unit
-//            ): Subscription {
-//                val subscriptions = eventTypes.map { subscribe(it, topic, handler) }
-//
-//                return object : Subscription {
-//                    override fun unsubscribe() {
-//                        subscriptions.forEach { it.unsubscribe() }
-//                    }
-//
-//                }
-//            }
-//
-//            override fun <T : DomainEvent> subscribe(
-//                eventType: Class<T>,
-//                topic: String,
-//                handler: (T) -> Unit
-//            ): Subscription {
-//                val key = topic to eventType
-//                val handler = handler as (DomainEvent) -> Unit
-//                val item = key to handler
-//                subscribers.add(item)
-//
-//                return object : Subscription {
-//                    override fun unsubscribe() {
-//                        subscribers.remove(item)
-//                    }
-//
-//                }
-//            }
-//        }
-//    }
-//}
 
 @Configuration
 internal class WebMvcConfiguration : WebMvcConfigurer {

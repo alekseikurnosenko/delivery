@@ -4,6 +4,7 @@ import com.delivery.demo.DomainEvent
 import com.delivery.demo.EventPublisher
 import com.delivery.demo.order.OrderPaid
 import com.delivery.demo.order.OrderPlaced
+import org.hibernate.annotations.common.util.impl.LoggerFactory
 import org.springframework.amqp.core.MessageProperties
 import org.springframework.amqp.core.TopicExchange
 import org.springframework.amqp.rabbit.core.RabbitTemplate
@@ -23,8 +24,13 @@ class OutboxEventPublisher(
     private val messageConverter: MessageConverter
 ) : EventPublisher {
 
+    private val logger = LoggerFactory.logger(OutboxEventPublisher::class.java)
+
     @Transactional
     override fun publish(events: List<DomainEvent>, topic: String) {
+        events.forEach {
+            logger.info("Publishing $it")
+        }
         outboxRepository.saveAll(events.map {
             val routingKey = when (it) {
                 is OrderPlaced -> "order.placed"
@@ -33,8 +39,8 @@ class OutboxEventPublisher(
             }
             val message = messageConverter.toMessage(it, MessageProperties())
             OutboxMessage(
-                message = message,
-                routingKey = routingKey
+                    message = message,
+                    routingKey = routingKey
             )
         })
     }

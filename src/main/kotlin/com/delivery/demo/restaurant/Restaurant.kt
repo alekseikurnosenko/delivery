@@ -66,11 +66,11 @@ class Restaurant private constructor(
 
     companion object {
         fun new(
-            accountId: String,
-            name: String,
-            address: Address,
-            currency: CurrencyUnit,
-            minimumOrderAmount: Money?
+                accountId: String,
+                name: String,
+                address: Address,
+                currency: CurrencyUnit,
+                minimumOrderAmount: Money?
         ): Restaurant {
             val restaurant = Restaurant(
                 accountId = accountId,
@@ -101,6 +101,6 @@ class Dish(
 )
 
 data class RestaurantAdded(
-    val accountId: String,
-    val restaurantId: UUID
+        val accountId: String,
+        val restaurantId: UUID
 ) : DomainEvent

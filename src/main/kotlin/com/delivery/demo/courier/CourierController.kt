@@ -1,7 +1,6 @@
 package com.delivery.demo.courier
 
 import com.auth0.spring.security.api.authentication.AuthenticationJsonWebToken
-import com.delivery.demo.Address
 import com.delivery.demo.EventPublisher
 import com.delivery.demo.OptimisticRetryable
 import com.delivery.demo.delivery.DeliveryRequestDTO
@@ -53,7 +52,7 @@ class CourierController(
 
     @GetMapping("/me")
     fun ownCourier(token: AuthenticationJsonWebToken): CourierDTO? {
-        return courierRepository.findByUserId(token.name).map { it.asDTO(withOrders = true) }.orElse(null)
+        return courierRepository.findByAccountId(token.name).map { it.asDTO(withOrders = true) }.orElse(null)
     }
 
     @GetMapping("/{courierId}/orders")

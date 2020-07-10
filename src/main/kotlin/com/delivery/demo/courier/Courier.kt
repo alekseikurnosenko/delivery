@@ -34,9 +34,9 @@ data class LocationReport(
 @Entity
 @Table(name = "couriers")
 class Courier(
-    val fullName: String,
-    val userId: String,
-    onShift: Boolean
+        val fullName: String,
+        val accountId: String,
+        onShift: Boolean
 ) : AbstractEntity() {
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
@@ -81,9 +81,9 @@ class Courier(
     companion object {
         fun new(accountId: String, fullName: String): Courier {
             val courier = Courier(
-                userId = accountId,
-                fullName = fullName,
-                onShift = false
+                    accountId = accountId,
+                    fullName = fullName,
+                    onShift = false
             )
             courier.registerEvent(
                 CourierAdded(
@@ -112,8 +112,8 @@ data class CourierShiftStopped(
 ) : DomainEvent
 
 data class CourierAdded(
-    val accountId: String,
-    val courierId: UUID,
-    val fullName: String,
-    val onShift: Boolean
+        val accountId: String,
+        val courierId: UUID,
+        val fullName: String,
+        val onShift: Boolean
 ) : DomainEvent

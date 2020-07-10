@@ -3,9 +3,11 @@ package com.delivery.demo.notification
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.courier.CourierAdded
 import com.delivery.demo.courier.CourierLocationUpdated
+import com.delivery.demo.courier.CourierRepository
 import com.delivery.demo.delivery.DeliveryRequested
 import com.delivery.demo.order.*
 import com.delivery.demo.restaurant.RestaurantAdded
+import com.delivery.demo.restaurant.RestaurantRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.hibernate.annotations.common.util.impl.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -21,19 +23,32 @@ data class WebSocketMessage(val type: String, val payload: String)
 
 @Component
 class SocketHandler(
-    val objectMapper: ObjectMapper,
-    @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>
+        val objectMapper: ObjectMapper,
+        courierRepository: CourierRepository,
+        restaurantRepository: RestaurantRepository,
+        @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>
 ) : TextWebSocketHandler() {
+
+    init {
+        val couriers = courierRepository.findAll()
+        couriers.forEach {
+            courierIds[it.id] = it.accountId
+        }
+
+        restaurantRepository.findAll().forEach {
+            restaurantsIds[it.id] = it.accountId
+        }
+    }
 
     private val logger = LoggerFactory.logger(SocketHandler::class.java)
 
     private val sessions = ConcurrentLinkedDeque<WebSocketSession>()
 
     data class Ids(
-        var userId: String,
-        var orderId: UUID,
-        var restaurantId: UUID,
-        var courierId: UUID? = null
+            var accountId: String,
+            var orderId: UUID,
+            var restaurantId: UUID,
+            var courierId: UUID? = null
     )
 
     private val orders = mutableListOf<Ids>()
@@ -52,7 +67,7 @@ class SocketHandler(
         val affectedUserIds: List<String> = when (event) {
             is CourierLocationUpdated -> {
                 // Users
-                orders.filter { it.courierId == event.courierId }.map { it.userId }
+                orders.filter { it.courierId == event.courierId }.map { it.accountId }
                 // MB: restaurants?
             }
             is OrderPreparationStarted -> {
@@ -84,13 +99,13 @@ class SocketHandler(
                 val session = orders.find { it.orderId == event.orderId }
                 orders.removeAll { it.orderId == event.orderId }
 
-                listOfNotNull(session?.userId)
+                listOfNotNull(session?.accountId)
             }
             is OrderCanceled -> {
                 val session = orders.find { it.orderId == event.orderId }
                 orders.removeAll { it.orderId == event.orderId }
 
-                listOfNotNull(session?.userId)
+                listOfNotNull(session?.accountId)
             }
             is CourierAdded -> {
                 courierIds[event.courierId] = event.accountId
@@ -116,23 +131,23 @@ class SocketHandler(
         sessions.filter { session ->
             session.principal?.let { affectedUserIds.contains(it.name) } ?: true
         }
-            .forEach { session ->
-                // We don't allow un-authenticated users
-                // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
-                // Not sure whether we still need btw
-                synchronized(session) {
-                    try {
-                        session.sendMessage(
-                            TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload)))
-                        )
-                    } catch (e: Exception) {
-                        logger.error("Failed to send message", e)
+                .forEach { session ->
+                    // We don't allow un-authenticated users
+                    // LOLTOMCAT: https://bz.apache.org/bugzilla/show_bug.cgi?id=56026
+                    // Not sure whether we still need btw
+                    synchronized(session) {
+                        try {
+                            session.sendMessage(
+                                    TextMessage(objectMapper.writeValueAsString(WebSocketMessage(type, payload)))
+                            )
+                        } catch (e: Exception) {
+                            logger.error("Failed to send message", e)
+                        }
                     }
                 }
-            }
     }
 
-    fun users(orderId: UUID) = orders.filter { it.orderId == orderId }.map { it.userId }
+    fun users(orderId: UUID) = orders.filter { it.orderId == orderId }.map { it.accountId }
     fun couriers(courierId: UUID) = listOfNotNull(courierIds[courierId])
     fun restaurants(restaurantId: UUID) = listOfNotNull(restaurantsIds[restaurantId])
 

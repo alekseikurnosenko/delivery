@@ -29,6 +29,10 @@ class SocketHandler(
         @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>
 ) : TextWebSocketHandler() {
 
+    private val orders = mutableListOf<Ids>()
+    private val restaurantsIds = mutableMapOf<UUID, String>()
+    private val courierIds = mutableMapOf<UUID, String>()
+
     init {
         val couriers = courierRepository.findAll()
         couriers.forEach {
@@ -51,9 +55,6 @@ class SocketHandler(
             var courierId: UUID? = null
     )
 
-    private val orders = mutableListOf<Ids>()
-    private val restaurantsIds = mutableMapOf<UUID, String>()
-    private val courierIds = mutableMapOf<UUID, String>()
 
     @RabbitListener(queues = ["websocket"])
     fun onEvent(event: DomainEvent) {

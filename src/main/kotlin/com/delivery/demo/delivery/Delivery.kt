@@ -14,9 +14,9 @@ import javax.persistence.*
 @Entity
 @Table(name = "deliveries")
 class Delivery(
-    @OneToOne
-    @JoinColumn(name = "order_id")
-    val order: Order
+        @OneToOne
+        @JoinColumn(name = "order_id")
+        val order: Order
 ) : AbstractEntity() {
 
     val pickup: Address
@@ -56,20 +56,20 @@ class Delivery(
         requests.add(request)
 
         registerEvent(
-            DeliveryRequested(
-                orderId = order.id,
-                courierId = courier.id,
-                pickup = pickup,
-                dropoff = dropoff
-            )
+                DeliveryRequested(
+                        orderId = order.id,
+                        courierId = courier.id,
+                        pickup = pickup,
+                        dropoff = dropoff
+                )
         )
         return request
     }
 
-    fun acceptRequestAsCourier(courier: Courier) {
+    fun acceptRequestAsCourier(courier: Courier): DeliveryRequest {
         // Invariant can accept only requests that were requested
         val request = requests.find { it.courier == courier }
-            ?: throw Exception("$this wasn't requested from $courier")
+                ?: throw Exception("$this wasn't requested from $courier")
 
         // Invariant: cannot accept rejected/timed out requests
         if (request.status != DeliveryRequestStatus.Requested) {
@@ -78,48 +78,50 @@ class Delivery(
 
         // Idempotence
         if (request.status == DeliveryRequestStatus.Accepted) {
-            return
+            return request
         }
 
         // TODO: check timeout
 
         request.accept()
         registerEvent(
-            DeliveryRequestAccepted(
-                orderId = order.id,
-                courierId = courier.id
-            )
+                DeliveryRequestAccepted(
+                        orderId = order.id,
+                        courierId = courier.id
+                )
         )
 
         // Duplicate? We already have request that was accepted?
         assignedCourier = courier
 
         // TODO: consider revoking all other pending requests in case of asking multiple couriers at the same time?
+        return request
     }
 
-    fun rejectRequestAsCourier(courier: Courier) {
+    fun rejectRequestAsCourier(courier: Courier): DeliveryRequest {
         val request = requests.find { it.courier == courier }
-            ?: throw Exception("$this wasn't requested from $courier")
+                ?: throw Exception("$this wasn't requested from $courier")
 
         if (request.status != DeliveryRequestStatus.Requested) {
-            return // Courier doesn't care about result
+            return request // Courier doesn't care about result
         }
         if (request.status == DeliveryRequestStatus.Rejected) {
-            return // Idempotence
+            return request // Idempotence
         }
 
         request.reject()
         registerEvent(
-            DeliveryRequestRejected(
-                orderId = order.id,
-                courierId = courier.id
-            )
+                DeliveryRequestRejected(
+                        orderId = order.id,
+                        courierId = courier.id
+                )
         )
+        return request
     }
 
     fun timeoutRequest(courier: Courier) {
         val request = requests.find { it.courier == courier }
-            ?: throw Exception("$this wasn't requested from $courier")
+                ?: throw Exception("$this wasn't requested from $courier")
 
         // If request was acted upon - ignore
         if (request.status != DeliveryRequestStatus.Requested) {
@@ -128,10 +130,10 @@ class Delivery(
 
         request.timeout()
         registerEvent(
-            DeliveryRequestTimedOut(
-                orderId = order.id,
-                courierId = courier.id
-            )
+                DeliveryRequestTimedOut(
+                        orderId = order.id,
+                        courierId = courier.id
+                )
         )
     }
 }
@@ -145,16 +147,16 @@ enum class DeliveryStatus {
 }
 
 data class DeliveryRequested(
-    val orderId: UUID,
-    val courierId: UUID,
-    val pickup: Address,
-    val dropoff: Address
+        val orderId: UUID,
+        val courierId: UUID,
+        val pickup: Address,
+        val dropoff: Address
 ) : DomainEvent
 
 data class DeliveryRequestAccepted(
-    val orderId: UUID,
-    val courierId: UUID,
-    override val routingKey: String = queue
+        val orderId: UUID,
+        val courierId: UUID,
+        override val routingKey: String = queue
 ) : DomainEvent {
     companion object {
         const val queue = "deliveryRequest.accepted"
@@ -162,9 +164,9 @@ data class DeliveryRequestAccepted(
 }
 
 data class DeliveryRequestRejected(
-    val orderId: UUID,
-    val courierId: UUID,
-    override val routingKey: String = queue
+        val orderId: UUID,
+        val courierId: UUID,
+        override val routingKey: String = queue
 ) : DomainEvent {
     companion object {
         const val queue = "deliveryRequest.rejected"
@@ -172,9 +174,9 @@ data class DeliveryRequestRejected(
 }
 
 data class DeliveryRequestTimedOut(
-    val orderId: UUID,
-    val courierId: UUID,
-    override val routingKey: String = queue
+        val orderId: UUID,
+        val courierId: UUID,
+        override val routingKey: String = queue
 ) : DomainEvent {
     companion object {
         const val queue = "deliveryRequest.timed_out"

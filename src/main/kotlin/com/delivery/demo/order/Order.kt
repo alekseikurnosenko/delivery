@@ -6,6 +6,7 @@ import com.delivery.demo.DomainEvent
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.delivery.Delivery
+import com.delivery.demo.delivery.DeliveryRequest
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -127,20 +128,20 @@ class Order constructor(
         status = OrderStatus.Canceled
 
         registerEvent(
-            OrderCanceled(
-                id,
-                status,
-                reason
-            )
+                OrderCanceled(
+                        id,
+                        status,
+                        reason
+                )
         )
     }
 
-    fun acceptDeliveryRequest(courier: Courier) {
-        delivery.acceptRequestAsCourier(courier)
+    fun acceptDeliveryRequest(courier: Courier): DeliveryRequest {
+        return delivery.acceptRequestAsCourier(courier)
     }
 
-    fun rejectDeliveryRequest(courier: Courier) {
-        delivery.rejectRequestAsCourier(courier)
+    fun rejectDeliveryRequest(courier: Courier): DeliveryRequest {
+        return delivery.rejectRequestAsCourier(courier)
     }
 
     fun timeoutDeliveryRequest(courier: Courier) {

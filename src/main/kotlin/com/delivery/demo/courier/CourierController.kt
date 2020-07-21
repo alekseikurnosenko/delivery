@@ -78,38 +78,38 @@ class CourierController(
     @Transactional
     @PostMapping("/{courierId}/requests/{orderId}/accept")
     fun acceptDeliveryRequest(
-        @PathVariable("courierId", required = true) courierId: UUID,
-        @PathVariable("orderId", required = true) orderId: UUID
-    ): OrderDTO {
+            @PathVariable("courierId", required = true) courierId: UUID,
+            @PathVariable("orderId", required = true) orderId: UUID
+    ): DeliveryRequestDTO {
         val courier = courierRepository.findById(courierId)
-            .orElseThrow { CourierNotFoundException(courierId) }
+                .orElseThrow { CourierNotFoundException(courierId) }
         val order = orderRepository.findById(orderId)
-            .orElseThrow { UnknownOrderException(orderId) }
+                .orElseThrow { UnknownOrderException(orderId) }
 
-        order.acceptDeliveryRequest(courier)
+        val request = order.acceptDeliveryRequest(courier)
         courier.onDeliveryRequestAccepted(order)
 
         eventPublisher.publish(order.events)
-        return order.asDTO()
+        return request.asDTO()
     }
 
     @OptimisticRetryable
     @Transactional
     @PostMapping("/{courierId}/requests/{orderId}/reject")
     fun rejectDeliveryRequest(
-        @PathVariable("courierId", required = true) courierId: UUID,
-        @PathVariable("orderId", required = true) orderId: UUID
-    ): OrderDTO {
+            @PathVariable("courierId", required = true) courierId: UUID,
+            @PathVariable("orderId", required = true) orderId: UUID
+    ): DeliveryRequestDTO {
         val courier = courierRepository.findById(courierId)
-            .orElseThrow { CourierNotFoundException(courierId) }
+                .orElseThrow { CourierNotFoundException(courierId) }
         val order = orderRepository.findById(orderId)
-            .orElseThrow { UnknownOrderException(orderId) }
+                .orElseThrow { UnknownOrderException(orderId) }
 
-        order.rejectDeliveryRequest(courier)
+        val request = order.rejectDeliveryRequest(courier)
         courier.onDeliveryRequestRejected(order)
 
         eventPublisher.publish(order.events)
-        return order.asDTO()
+        return request.asDTO()
     }
 
     @OptimisticRetryable

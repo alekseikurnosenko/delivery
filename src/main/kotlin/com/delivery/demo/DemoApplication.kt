@@ -40,10 +40,15 @@ import org.springframework.retry.annotation.EnableRetry
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
+import org.springframework.web.servlet.HandlerInterceptor
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.util.*
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 fun main(args: Array<String>) {
     runApplication<DemoApplication>(*args)
@@ -241,5 +246,38 @@ class MoneyConverter : ModelConverter {
         init {
             ModelConverters.getInstance().addConverter(MoneyConverter())
         }
+    }
+}
+
+@Component
+class FirebaseTokenInterceptor(
+        val firebaseTokenRepository: FirebaseTokenRepository
+) : HandlerInterceptor {
+
+    override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
+
+        val userId = SecurityContextHolder.getContext().authentication?.principal as? String
+        val firebaseToken = request.getHeader("X-FirebaseToken")
+
+        if (userId != null && firebaseToken != null) {
+            firebaseTokenRepository.findById(userId)
+                    .filter { it.firebaseToken != firebaseToken }
+                    .ifPresent {
+                        it.firebaseToken = firebaseToken
+                        firebaseTokenRepository.save(it)
+                    }
+        }
+
+        return super.preHandle(request, response, handler)
+    }
+}
+
+@Configuration
+class WebMvcConfig(
+        val firebaseTokenInterceptor: FirebaseTokenInterceptor
+) : WebMvcConfigurer {
+
+    override fun addInterceptors(registry: InterceptorRegistry) {
+        registry.addInterceptor(firebaseTokenInterceptor);
     }
 }

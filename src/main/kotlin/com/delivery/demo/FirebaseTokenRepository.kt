@@ -6,9 +6,10 @@ import javax.persistence.Id
 
 @Entity
 class FirebaseTokenInformation(
-        @Id val userId: String
+        @Id val userId: String,
+        firebaseToken: String
 ) {
-    var firebaseToken: String? = null
+    var firebaseToken: String = firebaseToken
 }
 
 interface FirebaseTokenRepository : CrudRepository<FirebaseTokenInformation, String> {

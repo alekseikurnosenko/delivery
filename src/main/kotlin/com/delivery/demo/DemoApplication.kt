@@ -261,11 +261,14 @@ class FirebaseTokenInterceptor(
 
         if (userId != null && firebaseToken != null) {
             firebaseTokenRepository.findById(userId)
-                    .filter { it.firebaseToken != firebaseToken }
-                    .ifPresent {
-                        it.firebaseToken = firebaseToken
-                        firebaseTokenRepository.save(it)
-                    }
+                    .ifPresentOrElse({
+                        if (it.firebaseToken != firebaseToken) {
+                            it.firebaseToken = firebaseToken
+                            firebaseTokenRepository.save(it)
+                        }
+                    }, {
+                        firebaseTokenRepository.save(FirebaseTokenInformation(userId, firebaseToken))
+                    })
         }
 
         return super.preHandle(request, response, handler)

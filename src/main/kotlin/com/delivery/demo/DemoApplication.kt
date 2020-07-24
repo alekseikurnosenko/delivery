@@ -74,9 +74,9 @@ class DemoApplication {
                         Components().addSecuritySchemes(
                                 "JWT",
                                 SecurityScheme()
-                                        .name("Authorization")
-                                        .type(SecurityScheme.Type.APIKEY)
-                                        .`in`(SecurityScheme.In.HEADER)
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
                         )
                 )
                 .addSecurityItem(SecurityRequirement().addList("JWT"))

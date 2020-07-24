@@ -19,6 +19,7 @@ import io.swagger.v3.core.util.Json
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
+import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
@@ -69,46 +70,47 @@ class DemoApplication {
     @Bean
     fun customOpenAPI(): OpenAPI {
         return OpenAPI()
-            .components(
-                Components().addSecuritySchemes(
-                    "JWT",
-                    SecurityScheme()
-                        .type(SecurityScheme.Type.HTTP)
-                        .scheme("bearer")
-                        .bearerFormat("JWT")
+                .components(
+                        Components().addSecuritySchemes(
+                                "JWT",
+                                SecurityScheme()
+                                        .name("Authorization")
+                                        .type(SecurityScheme.Type.APIKEY)
+                                        .`in`(SecurityScheme.In.HEADER)
+                        )
                 )
-            )
+                .addSecurityItem(SecurityRequirement().addList("JWT"))
     }
 
     // We can try to use reflection and check for all classes implementing an interface instead
     @Bean
     @Qualifier("publishableEvents")
     fun publishableEvents(): List<Class<out DomainEvent>> = listOf(
-        RestaurantAdded::class.java,
-        OrderPreparationStarted::class.java,
-        OrderPreparationFinished::class.java,
-        OrderPlaced::class.java,
-        OrderAssigned::class.java,
-        OrderPickedUp::class.java,
-        OrderDelivered::class.java,
-        OrderCanceled::class.java,
-        CourierLocationUpdated::class.java,
-        CourierShiftStarted::class.java,
-        CourierShiftStopped::class.java,
-        CourierAdded::class.java,
-        DeliveryRequested::class.java
+            RestaurantAdded::class.java,
+            OrderPreparationStarted::class.java,
+            OrderPreparationFinished::class.java,
+            OrderPlaced::class.java,
+            OrderAssigned::class.java,
+            OrderPickedUp::class.java,
+            OrderDelivered::class.java,
+            OrderCanceled::class.java,
+            CourierLocationUpdated::class.java,
+            CourierShiftStarted::class.java,
+            CourierShiftStopped::class.java,
+            CourierAdded::class.java,
+            DeliveryRequested::class.java
     )
 
     @Bean
     fun customerGlobalHeaderOpenApiCustomiser(@Qualifier("publishableEvents") events: List<Class<out DomainEvent>>): OpenApiCustomiser =
-        OpenApiCustomiser {
-            // Enrich generated API definition with event schemas
+            OpenApiCustomiser {
+                // Enrich generated API definition with event schemas
 
-            for (event in events) {
-                val schemas = ModelConverters.getInstance().read(event)
-                it.components.schemas.putAll(schemas)
+                for (event in events) {
+                    val schemas = ModelConverters.getInstance().read(event)
+                    it.components.schemas.putAll(schemas)
+                }
             }
-        }
 //
 //    @Bean
 //    fun requestDumperFilter(): FilterRegistrationBean<RequestDumperFilter> {
@@ -132,9 +134,9 @@ interface EventPublisher {
 interface EventSubscriber {
     fun <T : DomainEvent> subscribe(eventType: Class<T>, topic: String = "default", handler: (T) -> Unit): Subscription
     fun <T : DomainEvent> subscribeAll(
-        eventTypes: List<Class<out T>>,
-        topic: String = "default",
-        handler: (T) -> Unit
+            eventTypes: List<Class<out T>>,
+            topic: String = "default",
+            handler: (T) -> Unit
     ): Subscription
 }
 
@@ -172,14 +174,14 @@ class JacksonConfiguration {
         })
 
         return Jackson2ObjectMapperBuilder.json()
-            .modulesToInstall(moneyModule)
-            .build()
+                .modulesToInstall(moneyModule)
+                .build()
     }
 
     data class MoneyView(
-        val amount: Double,
-        val currencyCode: String,
-        val formatted: String
+            val amount: Double,
+            val currencyCode: String,
+            val formatted: String
     )
 
 
@@ -188,11 +190,11 @@ class JacksonConfiguration {
         override fun serialize(value: Money, gen: JsonGenerator, serializers: SerializerProvider) {
             // Need to get user local here?
             val formatter =
-                MoneyFormatterBuilder().appendCurrencySymbolLocalized().appendAmountLocalized().toFormatter()
+                    MoneyFormatterBuilder().appendCurrencySymbolLocalized().appendAmountLocalized().toFormatter()
             val view = MoneyView(
-                amount = value.amount.toDouble(),
-                currencyCode = value.currencyUnit.code,
-                formatted = formatter.print(value)
+                    amount = value.amount.toDouble(),
+                    currencyCode = value.currencyUnit.code,
+                    formatted = formatter.print(value)
             )
             gen.writeObject(view)
         }
@@ -212,9 +214,9 @@ class JacksonConfiguration {
 class MoneyConverter : ModelConverter {
 
     override fun resolve(
-        type: AnnotatedType,
-        context: ModelConverterContext,
-        chain: MutableIterator<ModelConverter>
+            type: AnnotatedType,
+            context: ModelConverterContext,
+            chain: MutableIterator<ModelConverter>
     ): Schema<*>? {
         val typeName = type.type.typeName
 

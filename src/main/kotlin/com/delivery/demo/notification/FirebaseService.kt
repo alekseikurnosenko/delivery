@@ -23,7 +23,7 @@ class FirebaseService(
     )
 
     init {
-        val content = String(Base64.getDecoder().decode(encodedServiceAccount));
+        val content = String(Base64.getUrlDecoder().decode(encodedServiceAccount));
         val credentials = GoogleCredentials.fromStream(content.byteInputStream())
         val options = FirebaseOptions.Builder()
                 .setCredentials(credentials)

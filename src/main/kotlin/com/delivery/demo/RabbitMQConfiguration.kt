@@ -54,10 +54,11 @@ class RabbitMQConfiguration {
         val deliveryRequestTimedOutQueue = Queue(DeliveryRequestTimedOut.queue)
 
         return Declarables(
-            websocketQueue,
-            orderPlacedQueue,
-            orderPaidQueue,
-            deliveryRequestAcceptedQueue,
+                websocketQueue,
+                orderPlacedQueue,
+                orderPaidQueue,
+                pushNotificationQueue,
+                deliveryRequestAcceptedQueue,
                 deliveryRequestRejectedQueue,
                 deliveryRequestTimedOutQueue,
 

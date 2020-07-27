@@ -4,6 +4,7 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.*
+import org.jboss.logging.Logger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.*
@@ -11,8 +12,10 @@ import java.util.*
 
 @Service
 class FirebaseService(
-        @Value("FIREBASE_SERVICE_ACCOUNT_BASE64") encodedServiceAccount: String
+        @Value("\${FIREBASE_SERVICE_ACCOUNT_BASE64}") encodedServiceAccount: String
 ) {
+
+    val logger: Logger = Logger.getLogger(FirebaseService::class.java)
 
     data class PushNotification(
             val token: String,
@@ -44,7 +47,11 @@ class FirebaseService(
             builder.putAllData(notification.data.toMutableMap())
         }
 
-        FirebaseMessaging.getInstance().send(builder.build())
+        try {
+            FirebaseMessaging.getInstance().send(builder.build())
+        } catch (e: Exception) {
+            logger.error("Failed to send push notification", e)
+        }
     }
 
     private fun getAndroidConfig(topic: String?): AndroidConfig {

@@ -46,27 +46,30 @@ class RabbitMQConfiguration {
     @Bean
     fun eventBinding(exchange: TopicExchange): Declarables {
         val websocketQueue = Queue("websocket")
+        val pushNotificationQueue = Queue("pushNotification")
         val orderPlacedQueue = Queue(OrderPlaced.queue)
         val orderPaidQueue = Queue("order.paid")
         val deliveryRequestAcceptedQueue = Queue(DeliveryRequestAccepted.queue)
         val deliveryRequestRejectedQueue = Queue(DeliveryRequestRejected.queue)
         val deliveryRequestTimedOutQueue = Queue(DeliveryRequestTimedOut.queue)
+
         return Declarables(
             websocketQueue,
             orderPlacedQueue,
             orderPaidQueue,
             deliveryRequestAcceptedQueue,
-            deliveryRequestRejectedQueue,
-            deliveryRequestTimedOutQueue,
+                deliveryRequestRejectedQueue,
+                deliveryRequestTimedOutQueue,
 
-            BindingBuilder.bind(orderPlacedQueue).to(exchange).with("order.placed"),
-            BindingBuilder.bind(orderPaidQueue).to(exchange).with("order.paid"),
+                BindingBuilder.bind(orderPlacedQueue).to(exchange).with("order.placed"),
+                BindingBuilder.bind(orderPaidQueue).to(exchange).with("order.paid"),
 
-            BindingBuilder.bind(deliveryRequestAcceptedQueue).to(exchange).with(DeliveryRequestAccepted.queue),
-            BindingBuilder.bind(deliveryRequestRejectedQueue).to(exchange).with(DeliveryRequestRejected.queue),
-            BindingBuilder.bind(deliveryRequestTimedOutQueue).to(exchange).with(DeliveryRequestTimedOut.queue),
+                BindingBuilder.bind(deliveryRequestAcceptedQueue).to(exchange).with(DeliveryRequestAccepted.queue),
+                BindingBuilder.bind(deliveryRequestRejectedQueue).to(exchange).with(DeliveryRequestRejected.queue),
+                BindingBuilder.bind(deliveryRequestTimedOutQueue).to(exchange).with(DeliveryRequestTimedOut.queue),
 
-            BindingBuilder.bind(websocketQueue).to(exchange).with("#")
+                BindingBuilder.bind(websocketQueue).to(exchange).with("#"),
+                BindingBuilder.bind(pushNotificationQueue).to(exchange).with("#")
         )
     }
 

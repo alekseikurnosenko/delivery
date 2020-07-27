@@ -1,4 +1,4 @@
-package com.delivery.demo
+package com.delivery.demo.notification
 
 import org.springframework.data.repository.CrudRepository
 import javax.persistence.Entity

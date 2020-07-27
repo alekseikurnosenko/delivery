@@ -50,6 +50,8 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.auth0:auth0-spring-security-api:1.2.6")
     implementation("org.joda:joda-money:1.0.1")
+    implementation("com.google.firebase:firebase-admin:6.15.0")
+
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")

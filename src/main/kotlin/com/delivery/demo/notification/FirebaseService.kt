@@ -1,0 +1,61 @@
+package com.delivery.demo.notification
+
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.messaging.*
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Service
+import java.util.*
+
+
+@Service
+class FirebaseService(
+        @Value("FIREBASE_SERVICE_ACCOUNT_BASE64") encodedServiceAccount: String
+) {
+
+    data class PushNotification(
+            val token: String,
+            val title: String,
+            val body: String,
+            val topic: String? = null,
+            val data: Map<String, String>? = null
+    )
+
+    init {
+        val content = String(Base64.getDecoder().decode(encodedServiceAccount));
+        val credentials = GoogleCredentials.fromStream(content.byteInputStream())
+        val options = FirebaseOptions.Builder()
+                .setCredentials(credentials)
+                .setDatabaseUrl("https://testab-d80a2.firebaseio.com")
+                .build()
+
+        FirebaseApp.initializeApp(options)
+    }
+
+    fun sendPushNotification(notification: PushNotification) {
+        val builder = Message.builder()
+                .setNotification(Notification.builder().setTitle(notification.title).setBody(notification.body).build())
+                .setToken(notification.token)
+                .setAndroidConfig(getAndroidConfig(notification.topic))
+                .setApnsConfig(getApnsConfig(notification.topic))
+
+        if (notification.data != null) {
+            builder.putAllData(notification.data.toMutableMap())
+        }
+
+        FirebaseMessaging.getInstance().send(builder.build())
+    }
+
+    private fun getAndroidConfig(topic: String?): AndroidConfig {
+        return AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .setCollapseKey(topic)
+                .build()
+    }
+
+    private fun getApnsConfig(topic: String?): ApnsConfig {
+        return ApnsConfig.builder()
+                .setAps(Aps.builder().setThreadId(topic).build()).build()
+    }
+}

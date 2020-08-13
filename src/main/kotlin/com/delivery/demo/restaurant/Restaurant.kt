@@ -14,12 +14,25 @@ import javax.persistence.*
 @Entity
 @Table(name = "restaurants")
 class Restaurant private constructor(
-    val name: String,
-    @Embedded val address: Address,
-    val minimumOrderAmount: Money? = null,
-    val currency: CurrencyUnit,
-    val accountId: String
+        name: String,
+        address: Address,
+        val currency: CurrencyUnit,
+        val accountId: String,
+        imageUrl: String? = null
 ) : AbstractEntity() {
+
+    var name: String = name
+        protected set
+
+    @Embedded
+    var address: Address = address
+        protected set
+
+    var minimumOrderAmount: Money? = null
+        protected set
+
+    var imageUrl: String? = imageUrl
+        protected set
 
     @OneToMany(mappedBy = "restaurant", cascade = [CascadeType.ALL])
     var dishes: MutableList<Dish> = mutableListOf()
@@ -28,40 +41,75 @@ class Restaurant private constructor(
     val isAcceptingOrders: Boolean
         get() = true // TOOD: operating times?
 
-    fun addDish(name: String, price: Money): Dish {
-        val dish = Dish(
-            id = UUID.randomUUID(),
-            name = name,
-            price = price,
-            restaurant = this
-        )
-        dishes.add(dish)
-        return dish
-    }
-
     fun newBasket(owner: String, deliveryAddress: Address): Basket {
         return Basket(
-            owner = owner,
-            deliveryAddress = deliveryAddress,
-            restaurant = this
+                owner = owner,
+                deliveryAddress = deliveryAddress,
+                restaurant = this
         )
     }
 
     fun placeOrder(
-        userId: String,
-        deliveryAddress: Address,
-        items: List<BasketItem>
+            userId: String,
+            deliveryAddress: Address,
+            items: List<BasketItem>
     ): Order {
         if (!isAcceptingOrders) {
             throw Exception("Cannot place order since the restaurant is not accepting any")
         }
 
         return Order.place(
-            userId = userId,
-            restaurant = this,
-            deliveryAddress = deliveryAddress,
-            items = items
+                userId = userId,
+                restaurant = this,
+                deliveryAddress = deliveryAddress,
+                items = items
         )
+    }
+
+    fun delete() {
+        isDeleted = true
+        dishes.forEach { it.delete() }
+        // TODO: Event if needed
+    }
+
+    fun update(
+            name: String,
+            address: Address,
+            imageUrl: String?
+    ) {
+        this.name = name
+        this.address = address
+        this.imageUrl = imageUrl
+
+        // Generate event if needed?
+    }
+
+    fun addDish(name: String, price: Money, imageUrl: String?): Dish {
+        val dish = Dish(
+                name = name,
+                price = price,
+                imageUrl = imageUrl,
+                restaurant = this
+        )
+        dishes.add(dish)
+        return dish
+    }
+
+    fun editDish(dishId: UUID, name: String, price: Money, imageUrl: String?): Dish {
+        val dish = dishes.find { it.id == dishId } ?: throw Exception("Unknown dish with id=$dishId")
+
+        // TODO: Encapsulate into Dish entity?
+        dish.name = name
+        dish.price = price
+        dish.imageUrl = imageUrl
+
+        return dish
+    }
+
+    fun deleteDish(dishId: UUID) {
+        val dish = dishes.find { it.id == dishId } ?: throw Exception("Unknown dish with id=$dishId")
+
+        dish.delete()
     }
 
     companion object {
@@ -70,14 +118,14 @@ class Restaurant private constructor(
                 name: String,
                 address: Address,
                 currency: CurrencyUnit,
-                minimumOrderAmount: Money?
+                imageUrl: String?
         ): Restaurant {
             val restaurant = Restaurant(
-                accountId = accountId,
-                name = name,
-                address = address,
-                currency = currency,
-                minimumOrderAmount = minimumOrderAmount
+                    accountId = accountId,
+                    name = name,
+                    address = address,
+                    currency = currency,
+                    imageUrl = imageUrl
             )
 
             restaurant.registerEvent(RestaurantAdded(accountId, restaurant.id))
@@ -91,14 +139,17 @@ class Restaurant private constructor(
 @Entity
 @Table(name = "dishes")
 class Dish(
-    @Id
-    val id: UUID,
-    val name: String,
-    val price: Money,
-    @ManyToOne
-    @JoinColumn(name = "restaurant_id")
-    val restaurant: Restaurant
-)
+        var name: String,
+        var price: Money,
+        var imageUrl: String?,
+        @ManyToOne
+        @JoinColumn(name = "restaurant_id")
+        val restaurant: Restaurant
+) : AbstractEntity() {
+    fun delete() {
+        isDeleted = true
+    }
+}
 
 data class RestaurantAdded(
         val accountId: String,

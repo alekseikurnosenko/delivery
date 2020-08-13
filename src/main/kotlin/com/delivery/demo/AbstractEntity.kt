@@ -1,5 +1,6 @@
 package com.delivery.demo
 
+import org.hibernate.annotations.Where
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.data.util.ProxyUtils
@@ -8,6 +9,7 @@ import javax.persistence.*
 
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener::class)
+@Where(clause = "isDeleted = false")
 abstract class AbstractEntity {
 
     @Id
@@ -22,6 +24,8 @@ abstract class AbstractEntity {
 
     @Version
     private var version: Long = 0L
+
+    protected var isDeleted: Boolean = false
 
     protected fun registerEvent(event: DomainEvent) {
         domainEvents.add(event)

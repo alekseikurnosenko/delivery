@@ -2,6 +2,8 @@ package com.delivery.demo.order
 
 import com.delivery.demo.restaurant.ResourceNotFoundException
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
@@ -19,8 +21,8 @@ class OrderController(
 ) {
 
     @GetMapping("")
-    fun orders(): List<OrderDTO> {
-        return orderRepository.findAllByOrderByCreatedDateDesc().map { it.asDTO() }
+    fun orders(pageable: Pageable): Page<OrderDTO> {
+        return orderRepository.findAll(pageable).map { it.asDTO() }
     }
 
     @GetMapping("/{orderId}")

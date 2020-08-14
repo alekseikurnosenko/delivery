@@ -2,8 +2,10 @@ package com.delivery.demo.courier
 
 import com.delivery.demo.AbstractEntity
 import com.delivery.demo.DomainEvent
+
 import com.delivery.demo.delivery.DeliveryRequest
 import com.delivery.demo.order.Order
+import org.hibernate.annotations.Where
 import java.util.*
 import javax.persistence.*
 import kotlin.math.sqrt
@@ -33,6 +35,7 @@ data class LocationReport(
 
 @Entity
 @Table(name = "couriers")
+@Where(clause = "is_deleted = false")
 class Courier(
         val fullName: String,
         val accountId: String,

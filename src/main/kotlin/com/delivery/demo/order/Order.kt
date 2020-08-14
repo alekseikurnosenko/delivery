@@ -3,6 +3,7 @@ package com.delivery.demo.order
 import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
 import com.delivery.demo.DomainEvent
+
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.delivery.Delivery
@@ -11,12 +12,14 @@ import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.swagger.v3.oas.annotations.media.Schema
+import org.hibernate.annotations.Where
 import org.joda.money.Money
 import java.util.*
 import javax.persistence.*
 
 @Entity
 @Table(name = "orders")
+@Where(clause = "is_deleted = false")
 class Order constructor(
     userId: String,
     restaurant: Restaurant,

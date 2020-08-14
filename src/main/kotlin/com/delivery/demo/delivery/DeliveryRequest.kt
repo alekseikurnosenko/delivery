@@ -1,11 +1,14 @@
 package com.delivery.demo.delivery
 
 import com.delivery.demo.AbstractEntity
+
 import com.delivery.demo.courier.Courier
+import org.hibernate.annotations.Where
 import javax.persistence.*
 
 @Entity
 @Table(name = "delivery_requests")
+@Where(clause = "is_deleted = false")
 class DeliveryRequest(
     @ManyToOne
     @JoinColumn(name = "courier_id")

@@ -1,6 +1,5 @@
 package com.delivery.demo
 
-import org.hibernate.annotations.Where
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.data.util.ProxyUtils
@@ -9,7 +8,6 @@ import javax.persistence.*
 
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener::class)
-@Where(clause = "is_deleted = false")
 abstract class AbstractEntity {
 
     @Id

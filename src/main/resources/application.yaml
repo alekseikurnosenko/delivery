@@ -8,11 +8,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    properties:
-      hibernate:
-        show_sql: false
-        use_sql_comments: false
-        format_sql: false
+  #    properties:
+  #      hibernate:
+  #        show_sql: true
+  #        use_sql_comments: false
+  #        format_sql: true
   rabbitmq:
     listener:
       simple:
@@ -33,10 +33,9 @@ logging:
     datadog: DEBUG
     com:
       auth0: DEBUG
-    org:
-      springframework:
-        security: DEBUG
 #    org:
+#      springframework:
+#        security: DEBUG
 #      hibernate:
 #        SQL: DEBUG
 #        type:

@@ -3,8 +3,10 @@ package com.delivery.demo.delivery
 import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
 import com.delivery.demo.DomainEvent
+
 import com.delivery.demo.courier.Courier
 import com.delivery.demo.order.Order
+import org.hibernate.annotations.Where
 import java.util.*
 import javax.persistence.*
 
@@ -13,6 +15,7 @@ import javax.persistence.*
  */
 @Entity
 @Table(name = "deliveries")
+@Where(clause = "is_deleted = false")
 class Delivery(
         @OneToOne
         @JoinColumn(name = "order_id")

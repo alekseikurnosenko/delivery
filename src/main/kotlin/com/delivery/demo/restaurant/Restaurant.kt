@@ -3,9 +3,11 @@ package com.delivery.demo.restaurant
 import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
 import com.delivery.demo.DomainEvent
+
 import com.delivery.demo.basket.Basket
 import com.delivery.demo.basket.BasketItem
 import com.delivery.demo.order.Order
+import org.hibernate.annotations.Where
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import java.util.*
@@ -13,6 +15,7 @@ import javax.persistence.*
 
 @Entity
 @Table(name = "restaurants")
+@Where(clause = "is_deleted = false")
 class Restaurant private constructor(
         name: String,
         address: Address,
@@ -138,6 +141,7 @@ class Restaurant private constructor(
 
 @Entity
 @Table(name = "dishes")
+@Where(clause = "is_deleted = false")
 class Dish(
         var name: String,
         var price: Money,

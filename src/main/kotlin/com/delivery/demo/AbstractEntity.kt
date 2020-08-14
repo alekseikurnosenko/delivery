@@ -9,7 +9,7 @@ import javax.persistence.*
 
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener::class)
-@Where(clause = "isDeleted = false")
+@Where(clause = "is_deleted = false")
 abstract class AbstractEntity {
 
     @Id
@@ -17,7 +17,7 @@ abstract class AbstractEntity {
 
     @CreatedDate
     @Column(updatable = false)
-    var createdDate: Date? = null
+    var createdAt: Date? = null
 
     @Transient
     private val domainEvents = mutableListOf<DomainEvent>()
@@ -25,6 +25,7 @@ abstract class AbstractEntity {
     @Version
     private var version: Long = 0L
 
+    @Column(name = "is_deleted")
     protected var isDeleted: Boolean = false
 
     protected fun registerEvent(event: DomainEvent) {

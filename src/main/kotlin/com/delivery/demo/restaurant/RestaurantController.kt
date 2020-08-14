@@ -233,14 +233,16 @@ class ResourceNotFoundException(message: String) : RuntimeException(message)
 fun Restaurant.asDTO(): RestaurantDTO = RestaurantDTO(
         id = id.toString(),
         name = name,
-        address = address
+        address = address,
+        currency = currency.code
 )
 
 @Schema(name = "Restaurant")
 data class RestaurantDTO(
         val id: String,
         val name: String,
-        val address: Address
+        val address: Address,
+        val currency: String
 )
 
 fun Dish.asDTO(): DishDTO = DishDTO(

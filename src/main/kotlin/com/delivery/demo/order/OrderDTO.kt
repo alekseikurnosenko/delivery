@@ -12,7 +12,7 @@ import java.util.*
 
 fun Order.asDTO() = OrderDTO(
         id = id.toString(),
-        createdAt = createdDate ?: Date(), // FIXME: Should be part of domain
+        createdAt = createdAt ?: Date(), // FIXME: Should be part of domain
         totalAmount = totalAmount.asDTO(),
         deliveryAddress = deliveryAddress,
         status = status,

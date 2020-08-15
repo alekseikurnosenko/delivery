@@ -28,6 +28,7 @@ class ProfileController(
                 profileRepostiory.save(profile)
             }
             .orElseGet {
+                // TODO: create as aggregate instead
                 val newProfile = Profile()
                 newProfile.userId = principal.name
                 newProfile.deliveryAddress = address

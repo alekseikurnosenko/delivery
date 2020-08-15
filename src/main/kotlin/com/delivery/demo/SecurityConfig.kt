@@ -7,6 +7,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
+import org.springframework.web.servlet.config.annotation.CorsRegistry
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+
 
 @Configuration
 @EnableWebSecurity
@@ -20,10 +23,19 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
     @Throws(Exception::class)
     override fun configure(http: HttpSecurity) {
         JwtWebSecurityConfigurer
-            .forRS256(apiAudience, issuer)
-            .configure(http)
-            .cors().and().csrf().disable().authorizeRequests()
-            .antMatchers("/api/**").authenticated()
-            .antMatchers("/console/**").permitAll()
+                .forRS256(apiAudience, issuer)
+                .configure(http)
+                .cors().and().csrf().disable().authorizeRequests()
+                .antMatchers("/api/**").authenticated()
+                .antMatchers("/console/**").permitAll()
+    }
+}
+
+@Configuration
+class CORSConfig : WebMvcConfigurer {
+    override fun addCorsMappings(registry: CorsRegistry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "HEAD")
     }
 }

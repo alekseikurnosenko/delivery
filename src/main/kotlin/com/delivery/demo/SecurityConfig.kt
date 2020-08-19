@@ -26,7 +26,7 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
                 .forRS256(apiAudience, issuer)
                 .configure(http)
                 .cors().and().csrf().disable().authorizeRequests()
-                .antMatchers("/api/**").authenticated()
+                .antMatchers("/**").authenticated()
                 .antMatchers("/console/**").permitAll()
     }
 }

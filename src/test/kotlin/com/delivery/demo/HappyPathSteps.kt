@@ -241,7 +241,7 @@ class HappyPathSteps : En {
         }
     }
 
-    fun api(path: String) = "http://$endpoint:$serverPort/api$path"
+    fun api(path: String) = "http://$endpoint:$serverPort$path"
 }
 
 fun retry(handler: () -> Unit) {

@@ -90,6 +90,7 @@ class BasketController(
     }
 
     @PostMapping("/removeItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @Transactional
     fun removeItemFromBasket(@RequestBody @Valid input: RemoveFromBasketInput): BasketDTO {
         val restaurant = restaurantRepository.findById(input.restaurantId)
                 .orElseThrow { Exception("Restaurant with id ${input.restaurantId} not found") }

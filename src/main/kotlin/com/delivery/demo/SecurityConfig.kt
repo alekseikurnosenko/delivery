@@ -25,10 +25,11 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
         JwtWebSecurityConfigurer
                 .forRS256(apiAudience, issuer)
                 .configure(http)
-                .cors().and().csrf().disable().authorizeRequests()
-                .antMatchers("/**").authenticated()
+                .cors().and().csrf().disable()
+                .authorizeRequests()
                 .antMatchers("/console/**").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
+                .antMatchers("/**").authenticated()
     }
 }
 

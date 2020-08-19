@@ -60,7 +60,7 @@ class Basket(
     fun removeItem(dish: Dish, quantity: Int) {
         val basketItemIndex = items.indexOfFirst { it.dish.id == dish.id }
         // Don't fail trying to remove non-existent items
-        val basketItem = if (basketItemIndex > 0) items[basketItemIndex] else return
+        val basketItem = if (basketItemIndex >= 0) items[basketItemIndex] else return
         if (quantity >= basketItem.quantity) {
             items.remove(basketItem)
         } else {

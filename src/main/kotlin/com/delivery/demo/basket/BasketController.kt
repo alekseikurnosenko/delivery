@@ -1,14 +1,11 @@
 package com.delivery.demo.basket
 
 import com.delivery.demo.EventPublisher
-import com.delivery.demo.JacksonConfiguration
 import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.order.asDTO
 import com.delivery.demo.profile.ProfileRepostiory
-import com.delivery.demo.restaurant.DishDTO
 import com.delivery.demo.restaurant.RestaurantRepository
-import com.delivery.demo.restaurant.asDTO
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.MediaType
 import org.springframework.security.core.context.SecurityContextHolder
@@ -18,19 +15,22 @@ import java.security.Principal
 import java.util.*
 import javax.validation.Valid
 
+/**
+ * TODO: Refactor to use Aggregate instead
+ */
 @RestController
 @CrossOrigin
 @RequestMapping(
-    "/api/basket",
-    produces = [MediaType.APPLICATION_JSON_VALUE]
+        "/api/basket",
+        produces = [MediaType.APPLICATION_JSON_VALUE]
 )
 @Tag(name = "basket", description = "Current basket")
 class BasketController(
-    val restaurantRepository: RestaurantRepository,
-    val basketRepository: BasketRepository,
-    val orderRepository: OrderRepository,
-    val eventPublisher: EventPublisher,
-    val profileRepostiory: ProfileRepostiory
+        val restaurantRepository: RestaurantRepository,
+        val basketRepository: BasketRepository,
+        val orderRepository: OrderRepository,
+        val eventPublisher: EventPublisher,
+        val profileRepostiory: ProfileRepostiory
 ) {
 
     @GetMapping("")
@@ -45,7 +45,7 @@ class BasketController(
     @PostMapping("/addItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun addItemToBasket(@RequestBody @Valid input: AddItemToBasketInput, principal: Principal): BasketDTO {
         val restaurant = restaurantRepository.findById(input.restaurantId)
-            .orElseThrow { Exception("Restaurant with id ${input.restaurantId} not found") }
+                .orElseThrow { Exception("Restaurant with id ${input.restaurantId} not found") }
 
         val dish = restaurant.dishes.find { it.id == input.dishId } ?: throw Exception("Dish not found")
 
@@ -65,10 +65,14 @@ class BasketController(
         }
 
         // If basket is not empty
-        // And basket already contains dishes from other restaurn
+        // And basket already contains dishes from other restaurant
         // throw an error, unless forceNew is passed
-        if (basket.items.isNotEmpty() && basket.restaurant.id != input.restaurantId && !input.forceNewBasket) {
-            throw Exception("Basket not empty")
+        if (basket.items.isNotEmpty() && basket.restaurant.id != input.restaurantId) {
+            if (input.forceNewBasket) {
+                basket.removeAllItems()
+            } else {
+                throw Exception("Basket not empty")
+            }
         }
 
         basket.addItem(dish, input.quantity)
@@ -78,7 +82,7 @@ class BasketController(
     @PostMapping("/removeItem", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun removeItemFromBasket(@RequestBody @Valid input: RemoveFromBasketInput): BasketDTO {
         val restaurant = restaurantRepository.findById(input.restaurantId)
-            .orElseThrow { Exception("Restaurant with id ${input.restaurantId} not found") }
+                .orElseThrow { Exception("Restaurant with id ${input.restaurantId} not found") }
 
         val dish = restaurant.dishes.find { it.id == input.dishId } ?: throw Exception("Dish not found")
 
@@ -104,9 +108,9 @@ class BasketController(
 
         // Create order
         val order = restaurant.placeOrder(
-            userId = basket.owner,
-            deliveryAddress = basket.deliveryAddress,
-            items = basket.items
+                userId = basket.owner,
+                deliveryAddress = basket.deliveryAddress,
+                items = basket.items
         )
         orderRepository.save(order)
         eventPublisher.publish(order.events)
@@ -134,26 +138,4 @@ data class RemoveFromBasketInput(
     val dishId: UUID,
     val restaurantId: UUID,
     val quantity: Int
-)
-
-data class BasketDTO(
-    val items: List<BasketItemDTO>,
-    val totalAmount: JacksonConfiguration.MoneyView,
-    val isAboveMinimumOrder: Boolean
-)
-
-data class BasketItemDTO(
-    val dish: DishDTO,
-    val quantity: Int
-)
-
-fun Basket.asDTO() = BasketDTO(
-    items = items.map { it.asDTO() },
-    totalAmount = totalAmount.asDTO(),
-    isAboveMinimumOrder = isAboveMinimumOrder
-)
-
-fun BasketItem.asDTO() = BasketItemDTO(
-    dish = dish.asDTO(),
-    quantity = quantity
 )

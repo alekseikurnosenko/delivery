@@ -39,7 +39,7 @@ class Basket(
         get() {
             return restaurant.minimumOrderAmount?.let {
                 it < totalAmount
-            } ?: false
+            } ?: true
         }
 
     fun addItem(dish: Dish, quantity: Int) {
@@ -78,6 +78,10 @@ class Basket(
 //        status = WaitingForPayment.
 
     }
+
+    fun removeAllItems() {
+        items.clear()
+    }
 }
 
 @Entity
@@ -93,6 +97,10 @@ data class BasketItem(
     @JoinColumn(name = "basket_id")
     val basket: Basket
 ) {
+
+    val totalPrice: Money
+        get() = dish.price.multipliedBy(quantity.toLong())
+
     override fun toString(): String {
         return "${BasketItem::class.simpleName}(id=$id)"
     }

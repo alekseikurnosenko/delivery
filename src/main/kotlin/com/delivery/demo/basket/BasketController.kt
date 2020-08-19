@@ -6,8 +6,12 @@ import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.order.asDTO
 import com.delivery.demo.profile.ProfileRepostiory
 import com.delivery.demo.restaurant.RestaurantRepository
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
@@ -21,7 +25,7 @@ import javax.validation.Valid
 @RestController
 @CrossOrigin
 @RequestMapping(
-        "/api/basket",
+        "/basket",
         produces = [MediaType.APPLICATION_JSON_VALUE]
 )
 @Tag(name = "basket", description = "Current basket")
@@ -34,11 +38,17 @@ class BasketController(
 ) {
 
     @GetMapping("")
-    fun basket(principal: Principal): BasketDTO? {
+    @ApiResponses(
+            ApiResponse(responseCode = "200"),
+            ApiResponse(responseCode = "204", content = [Content()])
+    )
+    fun basket(principal: Principal): ResponseEntity<BasketDTO> {
         // if we have user profile - it's easy
         // what if user is a guest?
 
-        return basketRepository.findByOwner(principal.name).map { it.asDTO() }.orElse(null)
+        return basketRepository.findByOwner(principal.name)
+                .map { ResponseEntity.ok(it.asDTO()) }
+                .orElse(ResponseEntity.noContent().build())
     }
 
     @Transactional
@@ -128,14 +138,14 @@ class BasketController(
 }
 
 data class AddItemToBasketInput(
-    val dishId: UUID,
-    val restaurantId: UUID,
-    val quantity: Int,
-    val forceNewBasket: Boolean = false
+        val dishId: UUID,
+        val restaurantId: UUID,
+        val quantity: Int,
+        val forceNewBasket: Boolean = false
 )
 
 data class RemoveFromBasketInput(
-    val dishId: UUID,
-    val restaurantId: UUID,
-    val quantity: Int
+        val dishId: UUID,
+        val restaurantId: UUID,
+        val quantity: Int
 )

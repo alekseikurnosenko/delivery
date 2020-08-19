@@ -19,8 +19,8 @@ import java.util.*
 @RestController
 @CrossOrigin
 @RequestMapping(
-    "/api/couriers",
-    produces = [MediaType.APPLICATION_JSON_VALUE]
+        "/couriers",
+        produces = [MediaType.APPLICATION_JSON_VALUE]
 )
 @Tag(name = "couriers")
 class CourierController(

@@ -26,7 +26,7 @@ import javax.validation.Valid
 @RestController
 @CrossOrigin
 @RequestMapping(
-        "/api/restaurants",
+        "/restaurants",
         produces = [MediaType.APPLICATION_JSON_VALUE]
 )
 @Tag(name = "restaurants", description = "Manage restaurants")

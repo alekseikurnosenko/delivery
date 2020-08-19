@@ -11,8 +11,8 @@ import java.security.Principal
 @RestController
 @CrossOrigin
 @RequestMapping(
-    "/api/profile",
-    produces = [MediaType.APPLICATION_JSON_VALUE]
+        "/profile",
+        produces = [MediaType.APPLICATION_JSON_VALUE]
 )
 @Tag(name = "profile", description = "Current profile")
 class ProfileController(

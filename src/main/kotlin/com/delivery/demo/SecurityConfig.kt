@@ -29,6 +29,7 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
                 .authorizeRequests()
                 .antMatchers("/console/**").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
+                .antMatchers("/v3/api-docs/swagger-config").permitAll()
                 .antMatchers("/**").authenticated()
     }
 }

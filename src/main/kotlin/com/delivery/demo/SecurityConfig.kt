@@ -28,6 +28,7 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
                 .cors().and().csrf().disable().authorizeRequests()
                 .antMatchers("/**").authenticated()
                 .antMatchers("/console/**").permitAll()
+                .antMatchers("/swagger-ui/**").permitAll()
     }
 }
 

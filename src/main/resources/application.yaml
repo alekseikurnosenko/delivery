@@ -51,11 +51,6 @@ dd:
     jdbc-datasource:
       enabled: true
 
-
-springdoc:
-  swagger-ui:
-    path: '/swagger.html'
-
 management:
   metrics:
     export:

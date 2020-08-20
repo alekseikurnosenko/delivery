@@ -110,6 +110,7 @@ class BasketController(
     }
 
     @PostMapping("/checkout")
+    @Transactional
     fun checkout(): OrderDTO {
         val owner = userId()
         val basket = basketRepository.findByOwner(owner).orElseThrow { Exception("No basket avaialble") }

@@ -2,20 +2,18 @@ package com.delivery.demo.basket
 
 import com.delivery.demo.AbstractEntity
 import com.delivery.demo.Address
-
 import com.delivery.demo.restaurant.Dish
 import com.delivery.demo.restaurant.Restaurant
 import org.joda.money.Money
 import java.math.BigDecimal
-import java.util.*
 import javax.persistence.*
 
 @Entity
 @Table(name = "baskets")
 class Basket(
-    val owner: String,
-    val deliveryAddress: Address,
-    restaurant: Restaurant
+        val owner: String,
+        val deliveryAddress: Address,
+        restaurant: Restaurant
 ) : AbstractEntity() {
 
     @OneToMany(mappedBy = "basket", cascade = [CascadeType.ALL])
@@ -37,9 +35,8 @@ class Basket(
 
     val isAboveMinimumOrder: Boolean
         get() {
-            return restaurant.minimumOrderAmount?.let {
-                it < totalAmount
-            } ?: true
+            val minimumAmount = restaurant.minimumOrderAmount ?: Money.zero(restaurant.currency)
+            return totalAmount > minimumAmount
         }
 
     fun addItem(dish: Dish, quantity: Int) {
@@ -48,11 +45,11 @@ class Basket(
             items[basketItemIndex].quantity = items[basketItemIndex].quantity + quantity
         } else {
             items.add(
-                BasketItem(
-                    dish = dish,
-                    quantity = quantity,
-                    basket = this
-                )
+                    BasketItem(
+                            dish = dish,
+                            quantity = quantity,
+                            basket = this
+                    )
             )
         }
     }
@@ -86,22 +83,11 @@ class Basket(
 
 @Entity
 @Table(name = "basket_items")
-data class BasketItem(
-    @Id
-    val id: UUID = UUID.randomUUID(),
-    @ManyToOne
-    @JoinColumn(name = "dish_id")
-    val dish: Dish,
-    var quantity: Int,
-    @ManyToOne
-    @JoinColumn(name = "basket_id")
-    val basket: Basket
-) {
-
+class BasketItem(
+        @ManyToOne @JoinColumn(name = "dish_id") val dish: Dish,
+        @ManyToOne @JoinColumn(name = "basket_id") val basket: Basket,
+        var quantity: Int
+) : AbstractEntity() {
     val totalPrice: Money
         get() = dish.price.multipliedBy(quantity.toLong())
-
-    override fun toString(): String {
-        return "${BasketItem::class.simpleName}(id=$id)"
-    }
 }

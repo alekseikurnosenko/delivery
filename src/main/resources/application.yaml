@@ -1,4 +1,7 @@
 spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   datasource:
     url: jdbc:postgresql://localhost/delivery
     username: postgres

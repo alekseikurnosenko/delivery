@@ -12,7 +12,7 @@ import java.util.*
 
 fun Order.asDTO() = OrderDTO(
         id = id.toString(),
-        createdAt = createdAt ?: Date(), // FIXME: Should be part of domain
+        createdAt = (createdAt ?: Date()).toInstant().toString(), // FIXME: Should be part of domain
         totalAmount = totalAmount.asDTO(),
         deliveryAddress = deliveryAddress,
         status = status,
@@ -29,7 +29,7 @@ fun OrderItem.asDTO() = OrderItemDTO(
 @Schema(name = "Order")
 data class OrderDTO(
         val id: String,
-        val createdAt: Date,
+        val createdAt: String,
         val totalAmount: JacksonConfiguration.MoneyView,
         val deliveryAddress: Address,
         val restaurant: RestaurantDTO,

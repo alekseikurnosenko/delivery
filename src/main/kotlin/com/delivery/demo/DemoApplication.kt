@@ -94,6 +94,7 @@ class DemoApplication {
     @Qualifier("publishableEvents")
     fun publishableEvents(): List<Class<out DomainEvent>> = listOf(
             RestaurantAdded::class.java,
+            OrderPaid::class.java,
             OrderPreparationStarted::class.java,
             OrderPreparationFinished::class.java,
             OrderPlaced::class.java,

@@ -38,6 +38,7 @@ data class OrderDTO(
         val items: List<OrderItemDTO>
 )
 
+@Schema(name = "OrderItem")
 data class OrderItemDTO(
         val dish: DishDTO,
         val quantity: Int

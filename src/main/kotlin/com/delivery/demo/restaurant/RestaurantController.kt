@@ -204,7 +204,7 @@ class RestaurantController(
 data class CreateDishInput(
         val name: String,
         val price: Double,
-        val imageUrl: String?
+        val imageUrl: String? = null
 )
 
 data class EditDishInput(
@@ -217,7 +217,7 @@ data class CreateRestaurantInput(
         val name: String,
         val address: Address,
         val currency: String,
-        val imageUrl: String?
+        val imageUrl: String? = null
 )
 
 data class EditRestaurantInput(

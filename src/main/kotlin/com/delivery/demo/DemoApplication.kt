@@ -5,6 +5,8 @@ import com.delivery.demo.courier.CourierLocationUpdated
 import com.delivery.demo.courier.CourierShiftStarted
 import com.delivery.demo.courier.CourierShiftStopped
 import com.delivery.demo.delivery.DeliveryRequested
+import com.delivery.demo.notification.FirebaseService
+import com.delivery.demo.notification.FirebaseServiceImpl
 import com.delivery.demo.notification.FirebaseTokenInformation
 import com.delivery.demo.notification.FirebaseTokenRepository
 import com.delivery.demo.order.*
@@ -28,6 +30,7 @@ import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
 import org.springdoc.core.customizers.OpenApiCustomiser
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.runApplication
@@ -35,7 +38,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.domain.AuditorAware
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.http.MediaType
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.retry.annotation.EnableRetry
@@ -56,13 +58,23 @@ fun main(args: Array<String>) {
     runApplication<DemoApplication>(*args)
 }
 
-@SpringBootApplication(scanBasePackages = ["com.delivery"])
-@EnableJpaRepositories(basePackages = ["com.delivery"])
+@SpringBootApplication
+class DemoApplication
+
+@Configuration
+internal class ProductionFirebaseConfig {
+    @Bean
+    fun firebaseService(@Value("\${FIREBASE_SERVICE_ACCOUNT_BASE64}") encodedServiceAccount: String): FirebaseService {
+        return FirebaseServiceImpl(encodedServiceAccount)
+    }
+}
+
+@Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 @EntityScan(basePackages = ["com.delivery"])
 @EnableScheduling
 @EnableRetry
-class DemoApplication {
+internal class ApplicationConfig {
 
     @Bean("auditorAware")
     fun auditorAware(): AuditorAware<Unit> = AuditorAware {

@@ -5,18 +5,10 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.*
 import org.jboss.logging.Logger
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Service
 import java.util.*
 
 
-@Service
-class FirebaseService(
-        @Value("\${FIREBASE_SERVICE_ACCOUNT_BASE64}") encodedServiceAccount: String
-) {
-
-    val logger: Logger = Logger.getLogger(FirebaseService::class.java)
-
+interface FirebaseService {
     data class PushNotification(
             val token: String,
             val title: String,
@@ -24,6 +16,21 @@ class FirebaseService(
             val topic: String? = null,
             val data: Map<String, String>? = null
     )
+
+    fun sendPushNotification(notification: FirebaseService.PushNotification)
+}
+
+class NoopFirebaseService : FirebaseService {
+    override fun sendPushNotification(notification: FirebaseService.PushNotification) {
+
+    }
+}
+
+class FirebaseServiceImpl(
+        encodedServiceAccount: String
+) : FirebaseService {
+
+    val logger: Logger = Logger.getLogger(FirebaseService::class.java)
 
     init {
         val content = String(Base64.getUrlDecoder().decode(encodedServiceAccount));
@@ -36,7 +43,7 @@ class FirebaseService(
         FirebaseApp.initializeApp(options)
     }
 
-    fun sendPushNotification(notification: PushNotification) {
+    override fun sendPushNotification(notification: FirebaseService.PushNotification) {
         val builder = Message.builder()
                 .setNotification(Notification.builder().setTitle(notification.title).setBody(notification.body).build())
                 .setToken(notification.token)

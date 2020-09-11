@@ -44,6 +44,7 @@ class Courier(
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinTable
+    // FIXME: we probably want to know the exact order of orders
     val activeOrders: MutableSet<Order> = mutableSetOf()
 
     @OneToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
@@ -81,6 +82,14 @@ class Courier(
         pendingDeliveryRequests.removeAll { it.delivery.order == order }
     }
 
+    fun onOrderAssigned(order: Order) {
+        activeOrders.add(order)
+    }
+
+    fun onOrderDelivered(order: Order) {
+        activeOrders.remove(order)
+    }
+
     companion object {
         fun new(accountId: String, fullName: String): Courier {
             val courier = Courier(
@@ -89,7 +98,7 @@ class Courier(
                     onShift = false
             )
             courier.registerEvent(
-                CourierAdded(
+                    CourierAdded(
                     accountId = accountId,
                     courierId = courier.id,
                     fullName = courier.fullName,

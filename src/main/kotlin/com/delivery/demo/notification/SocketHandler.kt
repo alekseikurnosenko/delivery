@@ -1,5 +1,6 @@
 package com.delivery.demo.notification
 
+import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticationJsonWebToken
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.courier.CourierAdded
 import com.delivery.demo.courier.CourierLocationUpdated
@@ -13,9 +14,11 @@ import org.hibernate.annotations.common.util.impl.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.security.Principal
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -26,7 +29,8 @@ class SocketHandler(
         val objectMapper: ObjectMapper,
         courierRepository: CourierRepository,
         restaurantRepository: RestaurantRepository,
-        @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>
+        @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>,
+        private val authenticationProvider: AuthenticationManager
 ) : TextWebSocketHandler() {
 
     private val orders = mutableListOf<Ids>()
@@ -47,6 +51,7 @@ class SocketHandler(
     private val logger = LoggerFactory.logger(SocketHandler::class.java)
 
     private val sessions = ConcurrentLinkedDeque<WebSocketSession>()
+    private val sessionPrincipals = mutableMapOf<WebSocketSession, Principal>()
 
     data class Ids(
             var accountId: String,
@@ -130,7 +135,7 @@ class SocketHandler(
         val type = event::class.java.name
         val payload = objectMapper.writeValueAsString(event)
         sessions.filter { session ->
-            session.principal?.let { affectedUserIds.contains(it.name) } ?: true
+            sessionPrincipals[session]?.let { affectedUserIds.contains(it.name) } ?: true
         }
                 .forEach { session ->
                     // We don't allow un-authenticated users
@@ -188,6 +193,7 @@ class SocketHandler(
 //        } else {
 //            sessionIds.add(Ids(principal.name))
         sessions.add(session)
+        session.principal?.let { sessionPrincipals[session] = it }
 //        }
 
     }
@@ -199,6 +205,13 @@ class SocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         println("Message from $session: $message")
+        if (message.payload.startsWith("X-Authorization: ")) {
+            val token = message.payload.substringAfter("X-Authorization: ")
+
+            val preAuth = PreAuthenticatedAuthenticationJsonWebToken.usingToken(token)
+            val auth = authenticationProvider.authenticate(preAuth)
+            sessionPrincipals[session] = auth
+        }
     }
 
     override fun handlePongMessage(session: WebSocketSession, message: PongMessage) {

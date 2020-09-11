@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost/delivery_test
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: create

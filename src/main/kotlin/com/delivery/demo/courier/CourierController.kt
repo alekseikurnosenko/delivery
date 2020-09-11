@@ -138,11 +138,13 @@ class CourierController(
         @PathVariable("orderId", required = true) orderId: UUID
     ): OrderDTO {
         val courier = courierRepository.findById(courierId)
-            .orElseThrow { CourierNotFoundException(courierId) }
+                .orElseThrow { CourierNotFoundException(courierId) }
         val order = orderRepository.findById(orderId)
-            .orElseThrow { UnknownOrderException(orderId) }
+                .orElseThrow { UnknownOrderException(orderId) }
 
         order.confirmDropoff(courier)
+        // Can we listen for event instead?
+        courier.onOrderDelivered(order)
 
         eventPublisher.publish(order.events)
         return order.asDTO()

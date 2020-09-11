@@ -3,14 +3,11 @@ package com.delivery.demo
 import com.delivery.demo.basket.AddItemToBasketInput
 import com.delivery.demo.basket.BasketDTO
 import com.delivery.demo.courier.CourierDTO
-import com.delivery.demo.courier.CreateCourierInput
 import com.delivery.demo.courier.LatLng
 import com.delivery.demo.courier.UpdateLocationInput
+import com.delivery.demo.delivery.DeliveryRequested
 import com.delivery.demo.notification.WebSocketMessage
-import com.delivery.demo.order.OrderDTO
-import com.delivery.demo.order.OrderPreparationFinished
-import com.delivery.demo.order.OrderPreparationStarted
-import com.delivery.demo.order.OrderStatus
+import com.delivery.demo.order.*
 import com.delivery.demo.profile.Profile
 import com.delivery.demo.restaurant.CreateDishInput
 import com.delivery.demo.restaurant.CreateRestaurantInput
@@ -28,14 +25,10 @@ import org.springframework.boot.test.context.SpringBootContextLoader
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.context.annotation.Scope
-import org.springframework.http.HttpEntity
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
 import org.springframework.http.client.ClientHttpRequestInterceptor
 import org.springframework.stereotype.Component
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.exchange
 import org.springframework.web.client.getForObject
 import org.springframework.web.client.postForObject
 import org.springframework.web.socket.TextMessage
@@ -46,18 +39,25 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.net.URI
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.TimeUnit
 
-
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(classes = [DemoApplication::class], loader = SpringBootContextLoader::class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = ["spring.main.allow-bean-definition-overriding=true"])
+@ContextConfiguration(classes = [DemoApplication::class, ApplicationConfig::class, TestConfiguration::class], loader = SpringBootContextLoader::class)
 class HappyPathSteps : En {
 
     private val restTemplate = RestTemplate()
 
     @Autowired
+    lateinit var auth0Client: Auth0Client
+
+    @Autowired
     lateinit var world: HappyPathWorld
+
     @Autowired
     lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    lateinit var courierClientFactory: CourierClientFactory
 
     lateinit var token: String
     lateinit var session: WebSocketSession
@@ -68,30 +68,24 @@ class HappyPathSteps : En {
 //    var endpoint = "enigmatic-garden-23553.herokuapp.com"
 
     private val locationMap = mapOf(
-        "PointA" to LatLng(0.0f, 0.0f),
-        "PointB" to LatLng(5.0f, 5.0f)
+            "PointA" to LatLng(0.0f, 0.0f),
+            "PointB" to LatLng(5.0f, 5.0f)
     )
 
     init {
         Before { _ ->
-            val headers = HttpHeaders()
-            headers.set("content-type", "application/json")
-            val entity = HttpEntity(
-                "{\"client_id\":\"<redacted>\",\"client_secret\":\"<redacted>\",\"audience\":\"https://delivery/api\",\"grant_type\":\"client_credentials\"}",
-                headers
-            )
-            val response = restTemplate.exchange<Map<String, String>>(
-                "https://dev-delivery.auth0.com/oauth/token",
-                HttpMethod.POST,
-                entity
-            )
-            token = response.body!!.getValue("access_token")
+            //            val token = auth0Client.getToken()
+            try {
+                auth0Client.createUser("restaurant@delivery.com", "password")
+            } catch (e: Throwable) {
 
+            }
+            val token = auth0Client.getUserToken("restaurant@delivery.com", "password")
             restTemplate.interceptors = listOf(
-                ClientHttpRequestInterceptor { request, body, execution ->
-                    request.headers.add("Authorization", "Bearer $token")
-                    return@ClientHttpRequestInterceptor execution.execute(request, body)
-                }
+                    ClientHttpRequestInterceptor { request, body, execution ->
+                        request.headers.add("Authorization", "Bearer $token")
+                        return@ClientHttpRequestInterceptor execution.execute(request, body)
+                    }
             )
 
             val client = StandardWebSocketClient()
@@ -107,21 +101,21 @@ class HappyPathSteps : En {
         }
         Given("^restaurant \"(.+)\" located near \"(.+)\" with following dishes$") { restaurantName: String, locationName: String, dataTable: DataTable ->
             val input = CreateRestaurantInput(
-                name = restaurantName,
-                address = Address(locationMap.getValue(locationName), "Fake", "Fake", "Fake"),
-                currency = CurrencyUnit.USD.code
+                    name = restaurantName,
+                    address = Address(locationMap.getValue(locationName), "Fake", "Fake", "Fake"),
+                    currency = CurrencyUnit.USD.code
             )
             val restaurant = restTemplate.postForObject<RestaurantDTO>(api("/restaurants"), input)
             dataTable.asMaps()
-                .map {
-                    CreateDishInput(
-                        name = it.getValue("dish"),
-                        price = it.getValue("price").toDouble()
-                    )
-                }
-                .forEach {
-                    restTemplate.postForObject<DishDTO>(api("/restaurants/${restaurant.id}/dishes"), it)
-                }
+                    .map {
+                        CreateDishInput(
+                                name = it.getValue("dish"),
+                                price = it.getValue("price").toDouble()
+                        )
+                    }
+                    .forEach {
+                        restTemplate.postForObject<DishDTO>(api("/restaurants/${restaurant.id}/dishes"), it)
+                    }
         }
         Given("A signed-in user") {
             // Do we like need two restTemplates with different headers?
@@ -133,22 +127,22 @@ class HappyPathSteps : En {
         }
         When("user browses list of restaurants") {
             world.restaurants =
-                restTemplate.getForObject<Array<RestaurantDTO>>(api("/restaurants"))
+                    restTemplate.getForObject<Array<RestaurantDTO>>(api("/restaurants"))
         }
         When("^user browses dishes of \"(.*)\" restaurant$") { restaurantName: String ->
             world.selectedRestaurant = world.restaurants.first { it.name == restaurantName }
             world.dishes =
-                restTemplate.getForObject<Array<DishDTO>>(api("/restaurants/${world.selectedRestaurant.id}/dishes"))
+                    restTemplate.getForObject<Array<DishDTO>>(api("/restaurants/${world.selectedRestaurant.id}/dishes"))
         }
         When("^user adds (.*) \"(.*)\" to basket$") { quantity: Int, dishName: String ->
             val dish = world.dishes.first { it.name == dishName }
             val input = AddItemToBasketInput(
-                dishId = UUID.fromString(dish.id),
-                restaurantId = UUID.fromString(world.selectedRestaurant.id),
-                quantity = quantity
+                    dishId = UUID.fromString(dish.id),
+                    restaurantId = UUID.fromString(world.selectedRestaurant.id),
+                    quantity = quantity
             )
             world.basket =
-                restTemplate.postForObject<BasketDTO>(api("/basket/addItem"), input)
+                    restTemplate.postForObject<BasketDTO>(api("/basket/addItem"), input)
         }
         Then("user's basket should not be empty") {
             val response = restTemplate.getForObject<BasketDTO>(api("/basket"))
@@ -162,9 +156,7 @@ class HappyPathSteps : En {
             world.order = restTemplate.postForObject<OrderDTO>(api("/basket/checkout"))
         }
         Given("^a courier \"(.+)\"") { courierName: String ->
-            val input = CreateCourierInput(name = courierName)
-            val courier = restTemplate.postForObject<CourierDTO>(api("/couriers"), input)
-            world.couriers[courierName] = courier.id
+            world.couriers[courierName] = courierClientFactory.create(courierName, endpoint, serverPort)
         }
         Given("^\"(.+)\" is on shift") { courierName: String ->
             val courierId = world.couriers.getValue(courierName)
@@ -175,10 +167,19 @@ class HappyPathSteps : En {
             val input = UpdateLocationInput(locationMap.getValue(locationName))
             restTemplate.postForObject<Void?>(api("/couriers/$courierId/location"), input)
         }
+        Then("^\"(.+)\" receives a delivery request") { courierName: String ->
+            val courier = world.couriers.getValue(courierName)
+            retry {
+                val deliveryRequested = courier.events.filterIsInstance(DeliveryRequested::class.java).first()
+                assertThat(deliveryRequested.courierId.toString()).isEqualTo(courier.id)
+            }
+        }
         Then("^\"(.+)\" is assigned to deliver this order") { courierName: String ->
-            val courierId = world.couriers.getValue(courierName)
-            val orders = restTemplate.getForObject<Array<OrderDTO>>(api("/couriers/$courierId/orders"))
-            assertThat(orders.map { it.id }).contains(world.order.id)
+            retry {
+                val courierId = world.couriers.getValue(courierName)
+                val orders = restTemplate.getForObject<Array<OrderDTO>>(api("/couriers/$courierId/orders"))
+                assertThat(orders.map { it.id }).contains(world.order.id)
+            }
         }
         Then("^\"(.+)\" receives this order") { restaurantName: String ->
             val restaurantId = world.restaurants.first { it.name == restaurantName }.id
@@ -239,21 +240,26 @@ class HappyPathSteps : En {
             val input = mapOf("paymentMethodId" to "PAYMENT_METHOD_SUCCESS")
             restTemplate.postForObject(api("/profile/payment_method"), input)
         }
+        When("^\"(.+)\" accepts this delivery request") { courierName: String ->
+            world.couriers.getValue(courierName).acceptCurrentDeliveryRequest()
+        }
     }
 
     fun api(path: String) = "http://$endpoint:$serverPort$path"
 }
 
 fun retry(handler: () -> Unit) {
-    // TODO: timeout?
-    while (true) {
+    val end = System.nanoTime() + TimeUnit.SECONDS.toNanos(30)
+    var throwable: Throwable? = null
+    while (System.nanoTime() < end) {
         try {
             handler()
-            break
-        } catch (e: Exception) {
-
+            return
+        } catch (e: Throwable) {
+            throwable = e
         }
     }
+    throw throwable ?: Exception("Timed out")
 }
 
 @Component
@@ -267,5 +273,5 @@ class HappyPathWorld {
 
     val events = ConcurrentLinkedDeque<Any>()
 
-    val couriers = mutableMapOf<String, String>()
+    val couriers = mutableMapOf<String, CourierClient>()
 }

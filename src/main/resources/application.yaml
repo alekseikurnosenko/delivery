@@ -30,6 +30,8 @@ spring:
 auth0:
   audience: https://delivery/api
   issuer: https://dev-delivery.auth0.com/
+  client-id: ${AUTH0_CLIENT_ID}
+  client-secret: ${AUTH0_CLIENT_SECRET}
 
 logging:
   level:

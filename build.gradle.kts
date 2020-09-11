@@ -55,9 +55,9 @@ dependencies {
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
-    testImplementation("org.springframework.boot:spring-boot-starter-test") {
-        //        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
-    }
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
     testImplementation("io.cucumber:cucumber-java8:5.0.0-RC4")
     testImplementation("io.cucumber:cucumber-java:5.0.0-RC4")
     testImplementation("io.cucumber:cucumber-junit:5.0.0-RC4")

@@ -26,6 +26,8 @@ Feature: HappyPath
     And user's basket total amount should be 15.50
 
     When user performs checkout
+    Then "Mike" receives a delivery request
+    When "Mike" accepts this delivery request
     Then "Mike" is assigned to deliver this order
     And "Joes" receives this order
 

@@ -20,11 +20,11 @@ import javax.persistence.*
 @Entity
 @Table(name = "orders")
 @Where(clause = "is_deleted = false")
-class Order constructor(
-    userId: String,
-    restaurant: Restaurant,
-    deliveryAddress: Address,
-    items: List<BasketItem> // Can be an interface?
+class Order private constructor(
+        userId: String,
+        restaurant: Restaurant,
+        deliveryAddress: Address,
+        items: List<BasketItem> // Can be an interface?
 ) : AbstractEntity() {
 
     val deliveryAddress: Address = deliveryAddress

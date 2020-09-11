@@ -99,6 +99,7 @@ class DeliveryService(
         }
 
         order.onAssignedToCourier(courier)
+        courier.onOrderAssigned(order)
         eventPublisher.publish(order.events)
     }
 

@@ -26,7 +26,7 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
 
     @Bean(BeanIds.AUTHENTICATION_MANAGER)
     override fun authenticationManagerBean(): AuthenticationManager {
-        return super.authenticationManagerBean()
+        return authenticationManager()
     }
 
     @Throws(Exception::class)

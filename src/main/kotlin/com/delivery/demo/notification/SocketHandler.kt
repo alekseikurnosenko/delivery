@@ -1,5 +1,6 @@
 package com.delivery.demo.notification
 
+import com.auth0.spring.security.api.JwtAuthenticationProvider
 import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticationJsonWebToken
 import com.delivery.demo.DomainEvent
 import com.delivery.demo.courier.CourierAdded
@@ -14,7 +15,6 @@ import org.hibernate.annotations.common.util.impl.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
@@ -30,7 +30,7 @@ class SocketHandler(
         courierRepository: CourierRepository,
         restaurantRepository: RestaurantRepository,
         @Qualifier("publishableEvents") events: List<Class<out DomainEvent>>,
-        private val authenticationProvider: AuthenticationManager
+        var jwtAuthenticationProvider: JwtAuthenticationProvider
 ) : TextWebSocketHandler() {
 
     private val orders = mutableListOf<Ids>()
@@ -209,7 +209,7 @@ class SocketHandler(
             val token = message.payload.substringAfter("X-Authorization: ")
 
             val preAuth = PreAuthenticatedAuthenticationJsonWebToken.usingToken(token)
-            val auth = authenticationProvider.authenticate(preAuth)
+            val auth = jwtAuthenticationProvider.authenticate(preAuth)
             sessionPrincipals[session] = auth
         }
     }

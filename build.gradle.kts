@@ -49,6 +49,7 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-annotations:2.1.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.auth0:auth0-spring-security-api:1.2.6")
+    implementation("com.auth0:jwks-rsa:0.9.0")
     implementation("org.joda:joda-money:1.0.1")
     implementation("com.google.firebase:firebase-admin:6.15.0")
 

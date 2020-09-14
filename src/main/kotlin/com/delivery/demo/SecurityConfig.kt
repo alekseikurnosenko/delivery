@@ -1,12 +1,11 @@
 package com.delivery.demo
 
+import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.spring.security.api.JwtAuthenticationProvider
 import com.auth0.spring.security.api.JwtWebSecurityConfigurer
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.config.BeanIds
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -25,12 +24,10 @@ class SecurityConfig : WebSecurityConfigurerAdapter() {
     @Value(value = "\${auth0.issuer}")
     private val issuer: String? = null
 
-    @Bean(BeanIds.AUTHENTICATION_MANAGER)
-    override fun authenticationManagerBean(): AuthenticationManager {
-        return super.authenticationManagerBean()
-    }
-
-    override fun configure(auth: AuthenticationManagerBuilder?) {
+    @Bean
+    fun jwtAuthProvider(): JwtAuthenticationProvider {
+        val jwkProvider = JwkProviderBuilder(issuer).build()
+        return JwtAuthenticationProvider(jwkProvider, issuer, apiAudience)
     }
 
     @Throws(Exception::class)

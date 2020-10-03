@@ -79,16 +79,20 @@ class Order private constructor(
         throw Exception("Cannot finish preparing Order(id=$id), order is $status")
     }
 
+    /**
+     * TODO: Rename to assignToCourier?
+     * Set assignedCourier here!
+     */
     fun onAssignedToCourier(courier: Courier) {
         val event = OrderAssigned(
-            orderId = id,
-            courierId = courier.id,
-            courierFullName = courier.fullName,
-            restaurantId = restaurant.id,
-            restaurantName = restaurant.name,
-            restaurantAddress = restaurant.address,
-            deliveryAddress = deliveryAddress,
-            status = status
+                orderId = id,
+                courierId = courier.id,
+                courierFullName = courier.fullName,
+                restaurantId = restaurant.id,
+                restaurantName = restaurant.name,
+                restaurantAddress = restaurant.address,
+                deliveryAddress = deliveryAddress,
+                status = status
         )
         registerEvent(event)
     }

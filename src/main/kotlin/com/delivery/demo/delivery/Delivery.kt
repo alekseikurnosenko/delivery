@@ -95,6 +95,7 @@ class Delivery(
         )
 
         // Duplicate? We already have request that was accepted?
+        // FIXME: Should happen at the assignmed phase, no?
         assignedCourier = courier
 
         // TODO: consider revoking all other pending requests in case of asking multiple couriers at the same time?

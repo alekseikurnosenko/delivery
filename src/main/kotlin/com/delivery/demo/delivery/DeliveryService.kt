@@ -19,6 +19,9 @@ import java.util.*
 
 @Service
 @Transactional
+/**
+ * This doesn't look like a delivery service, instead it's more of a FindCourier service.
+ */
 class DeliveryService(
         val courierRepository: CourierRepository,
         val courierLocationRepository: CourierLocationRepository,
@@ -98,6 +101,9 @@ class DeliveryService(
             AmqpRejectAndDontRequeueException("Unknown Courier(id=${event.courierId})")
         }
 
+        // Shouldn't this be called directly from controller?
+        // This instead should just cancel any pending search
+        // Except timeout...
         order.onAssignedToCourier(courier)
         courier.onOrderAssigned(order)
         eventPublisher.publish(order.events)

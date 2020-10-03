@@ -21,35 +21,24 @@ import javax.persistence.*
 @Table(name = "orders")
 @Where(clause = "is_deleted = false")
 class Order private constructor(
-        userId: String,
-        restaurant: Restaurant,
-        deliveryAddress: Address,
-        items: List<BasketItem> // Can be an interface?
+        val userId: String,
+        val deliveryAddress: Address,
+        val totalAmount: Money,
+        @ManyToOne @JoinColumn(name = "restaurant_id") val restaurant: Restaurant
 ) : AbstractEntity() {
 
-    val deliveryAddress: Address = deliveryAddress
-
-    val userId: String = userId
-
-    @ManyToOne
-    @JoinColumn(name = "restaurant_id")
-    val restaurant: Restaurant = restaurant
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
+    @JvmSuppressWildcards // Needed due to "Collection has neither generic type or OneToMany.targetEntity()" error
+    lateinit var items: List<OrderItem>
+        protected set
 
     @OneToOne(mappedBy = "order", cascade = [CascadeType.ALL])
     lateinit var delivery: Delivery
         protected set
 
-    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
-    val items: List<OrderItem> = items.map { OrderItem(dish = it.dish, quantity = it.quantity, order = this) }
-
     @Enumerated(EnumType.STRING)
     var status: OrderStatus = OrderStatus.Placed
         protected set
-
-    val totalAmount: Money
-        get() = items.map { it.dish.price.multipliedBy(it.quantity.toLong()) }.reduce { acc, money ->
-            acc + money
-        }
 
     fun startPreparing() {
         if (status == OrderStatus.Preparing) {
@@ -165,12 +154,16 @@ class Order private constructor(
             deliveryAddress: Address,
             items: List<BasketItem>
         ): Order {
+            val totalAmount = items.map { it.dish.price.multipliedBy(it.quantity.toLong()) }.reduce { acc, money ->
+                acc + money
+            }
             val order = Order(
-                userId = userId,
-                restaurant = restaurant,
-                deliveryAddress = deliveryAddress,
-                items = items
+                    userId = userId,
+                    restaurant = restaurant,
+                    deliveryAddress = deliveryAddress,
+                    totalAmount = totalAmount
             )
+            order.items = items.map { OrderItem(dish = it.dish, quantity = it.quantity, order = order) }
             order.delivery = Delivery(order)
 
             // Do we also need to include all items here?

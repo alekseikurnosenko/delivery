@@ -9,7 +9,11 @@ import com.delivery.demo.order.OrderDTO
 import com.delivery.demo.order.OrderRepository
 import com.delivery.demo.order.UnknownOrderException
 import com.delivery.demo.order.asDTO
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springdoc.core.converters.models.PageableAsQueryParam
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.transaction.annotation.Transactional
@@ -46,8 +50,9 @@ class CourierController(
     }
 
     @GetMapping("")
-    fun couriers(): List<CourierDTO> {
-        return courierRepository.findAll().map { it.asDTO(withOrders = true) }
+    @PageableAsQueryParam
+    fun couriers(@Parameter(hidden = true) pageable: Pageable): Page<CourierDTO> {
+        return courierRepository.findAll(pageable).map { it.asDTO(withOrders = true) }
     }
 
     @GetMapping("/me")

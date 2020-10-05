@@ -16,6 +16,9 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.joda.money.format.MoneyFormatterBuilder
+import org.springdoc.core.converters.models.PageableAsQueryParam
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.transaction.annotation.Transactional
@@ -38,8 +41,9 @@ class RestaurantController(
 
     @Operation(summary = "Get list of restaurants")
     @GetMapping("")
-    fun restaurants(): List<RestaurantDTO> {
-        return restaurantRepository.findAll().map { it.asDTO() }
+    @PageableAsQueryParam
+    fun restaurants(@Parameter(hidden = true) pageable: Pageable): Page<RestaurantDTO> {
+        return restaurantRepository.findAll(pageable).map { it.asDTO() }
     }
 
     @Operation(summary = "Create new restaurant")
